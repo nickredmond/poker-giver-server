@@ -1381,6 +1381,7 @@ function originIsAllowed(origin) {
   return true;
 }
 
+var isGameBegun = false;
 var joinGame = function(messageData, connection) {
     getGameById(messageData.gameId, function(game) {
         if (game) {
@@ -1397,6 +1398,11 @@ var joinGame = function(messageData, connection) {
                             isOut: true
                         });
                         saveGame(game, function() {
+                            if (!isGameBegun) {
+                                // todo: begin games dynamically
+                                beginGame(games[0]);
+                                isGameBegun = true;
+                            }
                             connection.sendUTF(JSON.stringify({ game }));
                         });
                     }
@@ -1585,5 +1591,3 @@ var beginGame = function(game) {
         startNextTurn(game);
     });
 }
-// todo: begin games dynamically
-beginGame(games[0]);
