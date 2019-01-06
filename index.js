@@ -1438,6 +1438,7 @@ var joinGame = function(messageData, connection) {
 }
 
 wss.on('connection', function(ws) {
+    console.log("made connection")
     // if (!originIsAllowed(request.origin)) {
     //   // Make sure we only accept requests from an allowed origin
     //   request.reject();
@@ -1468,8 +1469,8 @@ wss.on('connection', function(ws) {
         //     connection.sendUTF(JSON.stringify({ error: 'Only UTF-8 strings are accepted.' }));
         // }
     });
-    ws.on('close', function(reasonCode, description) {
-        console.log((new Date()) + ' Peer ' + connection.remoteAddress + ' disconnected.');
+    ws.on('close', function() {
+        console.log((new Date()) + ' Peer disconnected.');
     });
 });
 
