@@ -1458,7 +1458,7 @@ var joinGame = function(messageData, connection) {
 }
 
 var addChips = function(messageData) {
-    addChipsRequestsByPlayerName[messageData.playerName] = message.numberOfChips;
+    addChipsRequestsByPlayerName[messageData.playerName] = messageData.numberOfChips;
 }
 
 wss.on('connection', function(ws) {
