@@ -17,7 +17,7 @@ var sendMessageToClients = function(gameId, payload) {
     var clientConnections = connectionsByGameId[gameId];
     if (clientConnections) {
         clientConnections.forEach(connection => {
-            connection.sendUTF(JSON.stringify(payload));
+            connection.send(JSON.stringify(payload));
         });
     }
 }
@@ -1422,7 +1422,7 @@ var joinGame = function(messageData, connection) {
                                 beginGame(games[0]);
                                 isGameBegun = true;
                             }
-                            connection.sendUTF(JSON.stringify({ game }));
+                            connection.send(JSON.stringify({ game }));
                         });
                     }
                     else {
@@ -1458,7 +1458,7 @@ wss.on('connection', function(ws) {
             const messageData = JSON.parse(message);
             switch (messageData.action) {
                 case 'joinGame': 
-                    joinGame(messageData, connection);
+                    joinGame(messageData, ws);
                     break;
                 default:
                     console.log("WARN: unknown request action '" + messageData.action + "' received, so nothing will be done.");
