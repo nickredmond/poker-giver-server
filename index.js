@@ -1532,10 +1532,17 @@ var games = [{
     roundNumber: 1,
     players: [
         {
-            name: 'Gryffindor',
+            name: 'Legolas',
             isHuman: false,
             numberOfChips: 2500,
             currentBet: 0,
+            isPlayed: false,
+            isOut: false
+        },
+        {
+            name: 'Gryffindor',
+            isHuman: false,
+            numberOfChips: 2500,
             isPlayed: false,
             isOut: false
         },
@@ -1555,6 +1562,28 @@ var games = [{
         },
         {
             name: 'Hufflepuff',
+            isHuman: false,
+            numberOfChips: 2500,
+            isPlayed: false,
+            isOut: false
+        },
+        {
+            name: 'MichaelScott',
+            isHuman: false,
+            numberOfChips: 2500,
+            currentBet: 0,
+            isPlayed: false,
+            isOut: false
+        },
+        {
+            name: 'Dwight K.',
+            isHuman: false,
+            numberOfChips: 2500,
+            isPlayed: false,
+            isOut: false
+        },
+        {
+            name: 'CreedBratton',
             isHuman: false,
             numberOfChips: 2500,
             isPlayed: false,
