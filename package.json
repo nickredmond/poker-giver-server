@@ -10,6 +10,8 @@
   "author": "nredmond",
   "license": "ISC",
   "dependencies": {
-    "websocket": "^1.0.28"
+    "express": "^4.16.4",
+    "websocket": "^1.0.28",
+    "ws": "^6.1.2"
   }
 }
