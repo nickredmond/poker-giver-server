@@ -1420,7 +1420,7 @@ var joinGame = function(messageData, connection) {
                         var player = {
                             name: player.name,
                             isHuman: true,
-                            numberOfChips: 0, // todo: player needs to buy in
+                            numberOfChips: messageData.buyInAmount,
                             currentBet: 0,
                             isPlayed: true,
                             isOut: true
@@ -1453,29 +1453,6 @@ var joinGame = function(messageData, connection) {
     });
 }
 
-var addChips = function(messageData) {
-    var gameId = messageData.gameId;
-    var playerName = messageData.playerName;
-    var numberOfChips = messageData.numberOfChips;
-    getGameById(gameId, function(game) {
-        var isFound = false;
-        for (var i = 0; i < game.players.length && !isFound; i++) {
-            if (players[i].name === playerName) {
-                players[i].numberOfChips += numberOfChips;
-                isFound = true;
-            }
-        }
-        saveGame(game, function() {
-            var playerAddedMessage = {
-                playerName,
-                numberOfChips,
-                action: 'playerAdded'
-            };
-            sendMessageToClients(game.id, playerAddedMessage);
-        });
-    });
-}
-
 wss.on('connection', function(ws) {
     console.log("made connection")
     // if (!originIsAllowed(request.origin)) {
@@ -1499,8 +1476,6 @@ wss.on('connection', function(ws) {
                 case 'joinGame': 
                     joinGame(messageData, ws);
                     break;
-                case 'addChips':
-                    addChips(messageData);
                 default:
                     console.log("WARN: unknown request action '" + messageData.action + "' received, so nothing will be done.");
                     break;
