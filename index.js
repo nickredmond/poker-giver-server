@@ -22,6 +22,8 @@ var sendMessageToClients = function(gameId, payload) {
     }
 }
 
+var addChipsRequestsByPlayerName = {};
+
 //#region PORTED OVER CODE FROM WEBVIEW
 
 // SECTION:: ported over from client
@@ -796,12 +798,19 @@ var endTurn = function(game, actionMessage) {
                         // also fix timing of this message
                     }
                 });
+
+                game.players.forEach(player => {
+                    if (addChipsRequestsByPlayerName[player.name]) {
+                        player.numberOfChips += addChipsRequestsByPlayerName[player.name];
+                        delete addChipsRequestsByPlayerName[player.name];
+                    }
+                });
                 
                 // todo: maybe make animation of pot being rewarded or some shit
                 setTimeout(() => {
                     game.cardsOnTable = [];
                     game.roundNumber = 1;
-                    
+
                     saveGame(game, function() {
                         beginDeal(game, function() {
                             startNextTurn(game);
@@ -1394,11 +1403,6 @@ console.log("http server listening on %d", port)
 
 var wss = new WebSocketServer({server: server})
 console.log("websocket server created")
- 
-function originIsAllowed(origin) {
-  // put logic here to detect whether the specified origin is allowed.
-  return true;
-}
 
 var isGameBegun = false;
 var joinGame = function(messageData, connection) {
@@ -1453,6 +1457,10 @@ var joinGame = function(messageData, connection) {
     });
 }
 
+var addChips = function(messageData) {
+    addChipsRequestsByPlayerName[messageData.playerName] = message.numberOfChips;
+}
+
 wss.on('connection', function(ws) {
     console.log("made connection")
     // if (!originIsAllowed(request.origin)) {
@@ -1476,6 +1484,8 @@ wss.on('connection', function(ws) {
                 case 'joinGame': 
                     joinGame(messageData, ws);
                     break;
+                case 'addChips': 
+                    addChips(messageData);
                 default:
                     console.log("WARN: unknown request action '" + messageData.action + "' received, so nothing will be done.");
                     break;
