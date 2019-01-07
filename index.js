@@ -752,7 +752,7 @@ var getActivePlayersCount = function(players) {
     }).length;
 }
  
-var beginRound = function(game) {
+var beginRound = function(game, messageToClients) {
     try {
         logMessage('trace', 'beginning next round')
         var activePlayersCount = getActivePlayersCount(game.players);
@@ -774,6 +774,7 @@ var beginRound = function(game) {
                 player.isPlayed = false;
             });
 
+            sendMessageToClients(game.id, { game, message: messageToClients || null });
             startNextTurn(game);
         }
     } catch (error) {
@@ -796,7 +797,6 @@ var endTurn = function(game, actionMessage) {
     if (!isGamesReset) {
         try {
             var message = actionMessage;
-            var action = null;
     
             var onlyPlayerIn = getOnlyPlayerIn(game.players);
             var isRoundComplete = onlyPlayerIn || isAllPlayersPlayed(game.players); 
@@ -837,6 +837,7 @@ var endTurn = function(game, actionMessage) {
                     });
                     
                     // todo: maybe make animation of pot being rewarded or some shit
+                    sendMessageToClients(game.id, { message, game, action })
                     setTimeout(() => {
                         try {
                             game.cardsOnTable = [];
@@ -863,6 +864,7 @@ var endTurn = function(game, actionMessage) {
                         for (var i = 0; i < 3; i++) {
                             game.cardsOnTable.push(drawCardFromDeck(game));
                             if (i === 2) {
+                                sendMessageToClients(game.id, { message, game, action: 'flop' })
                                 setTimeout(() => {
                                     logMessage('trace', 'beginning round after flop');
                                     saveGame(game, function() {
@@ -871,12 +873,11 @@ var endTurn = function(game, actionMessage) {
                                 }, 1500); // allow for front-end animation AND bot players
                             }
                         }
-                        action = 'flop';
                     }
                     else { // turn, river
                         game.cardsOnTable.push(drawCardFromDeck(game));
                         saveGame(game, function() {
-                            beginRound(game);
+                            beginRound(game, message);
                         });
                     }
                 }
@@ -886,8 +887,6 @@ var endTurn = function(game, actionMessage) {
                 incrementTurnIndex(game);
                 startNextTurn(game);
             }
-    
-            sendMessageToClients(game.id, { message, game, action })
         } catch (error) {
             // todo: refund chips and deal new hand?
             console.log("error: [ name:" + error.name + ", message:" + error.message + ", stack: " + error.stack + " ]");
