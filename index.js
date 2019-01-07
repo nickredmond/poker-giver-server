@@ -855,7 +855,7 @@ var endTurn = function(game, actionMessage) {
                 game.roundNumber++;
                 drawCardFromDeck(game); // burn card
 
-                logMessage('trace', 'incrementing rounding number to ' + roundNumber);
+                logMessage('trace', 'incrementing rounding number to ' + game.roundNumber);
                 if (game.roundNumber === 2) { // flop
                     logMessage('trace', 'dealing flop');
 
