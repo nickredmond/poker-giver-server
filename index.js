@@ -1463,8 +1463,14 @@ var addChips = function(messageData) {
 
 var handleUserAction = function(messageData) {
     getGameById(messageData.gameId, function(game) {
-        if (messageData.playerName === game.players[game.currentTurnIndex]) {
-            onNextUserAction(game, messageData.actionType, messageData.actionAmount);
+        if (messageData.playerName === game.players[game.currentTurnIndex].name) {
+            if (messageData.actionType === 'showCards') {
+                game.players[game.currentTurnIndex].isShowingHand = true;
+                sendMessageToClients(game.id, { game });
+            }
+            else {
+                onNextUserAction(game, messageData.actionType, messageData.actionAmount);
+            }
         }
     });
 }
