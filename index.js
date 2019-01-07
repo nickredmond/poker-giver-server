@@ -884,8 +884,8 @@ var endTurn = function(game, actionMessage) {
             }
             else {
                 logMessage('trace', 'starting next turn')
-                sendMessageToClients(game.id, { message, game });
                 incrementTurnIndex(game);
+                sendMessageToClients(game.id, { message, game });
                 startNextTurn(game);
             }
         } catch (error) {
