@@ -1595,7 +1595,7 @@ var testGame = {
 var resetAllGames = function() {
     isGamesReset = true;
     games = [
-        testGame
+        JSON.parse(JSON.stringify(testGame))
     ];
     connections.forEach(connection => {
         connection.terminate();
@@ -1654,7 +1654,7 @@ wss.on('connection', function(ws) {
 
 // SECTION:: games and data
 
-var games = [testGame];
+var games = [JSON.parse(JSON.stringify(testGame))];
 
 var humanPlayers = [
     {
