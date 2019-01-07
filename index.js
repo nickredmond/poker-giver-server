@@ -621,82 +621,87 @@ var setIsPlayedFalseExceptCurrentPlayer = function(game) {
 /* actionValue (any): bet/raise (number)
 */
 var onNextUserAction = function(game, actionType, actionValue) {
-    var activePlayer = game.players[game.currentTurnIndex]; 
-    var actionAmount = parseInt(actionValue) || 0;
-    var isAllIn = false;
-    var actionDisplayAmount;
-    switch (actionType) {
-        case 'check': 
-            activePlayer.isPlayed = true;
-            break;
-        case 'call': 
-            activePlayer.isPlayed = true;
-            var amountToCall = game.currentBet - activePlayer.currentBet;
-            actionDisplayAmount = amountToCall;
-            if (amountToCall >= activePlayer.numberOfChips) {
-                isAllIn = true;
+    try {
+        var activePlayer = game.players[game.currentTurnIndex]; 
+        var actionAmount = parseInt(actionValue) || 0;
+        var isAllIn = false;
+        var actionDisplayAmount;
+        switch (actionType) {
+            case 'check': 
+                activePlayer.isPlayed = true;
+                break;
+            case 'call': 
+                activePlayer.isPlayed = true;
+                var amountToCall = game.currentBet - activePlayer.currentBet;
+                actionDisplayAmount = amountToCall;
+                if (amountToCall >= activePlayer.numberOfChips) {
+                    isAllIn = true;
+                    activePlayer.isOut = true;
+                    actionDisplayAmount = activePlayer.numberOfChips;
+                    activePlayer.numberOfChips = 0;
+                }
+                else {
+                    activePlayer.numberOfChips -= amountToCall;
+                }
+                game.currentPotAmount += amountToCall;
+                activePlayer.currentBet = game.currentBet;
+                break;
+            case 'bet': 
+                setIsPlayedFalseExceptCurrentPlayer(game);
+                actionDisplayAmount = actionAmount;
+                if (actionAmount >= activePlayer.numberOfChips) {
+                    isAllIn = true;
+                    activePlayer.isOut = true;
+                    actionDisplayAmount = activePlayer.numberOfChips;
+                    activePlayer.numberOfChips = 0;
+                }
+                else {
+                    activePlayer.numberOfChips -= actionAmount;
+                }
+                game.currentPotAmount += actionAmount;
+                activePlayer.currentBet = actionAmount;
+                game.currentBet = actionAmount;
+                break;
+            case 'raise': 
+                setIsPlayedFalseExceptCurrentPlayer(game);
+                actionDisplayAmount = actionAmount;
+                var totalBet = (game.currentBet - activePlayer.currentBet) + actionAmount;
+                if (totalBet >= activePlayer.numberOfChips) {
+                    isAllIn = true;
+                    activePlayer.isOut = true;
+                    actionDisplayAmount = activePlayer.numberOfChips;
+                    activePlayer.numberOfChips = 0;
+                }
+                else {
+                    activePlayer.numberOfChips -= totalBet;
+                }
+                game.currentPotAmount += totalBet;
+                game.currentBet += actionAmount;
+                activePlayer.currentBet = game.currentBet;
+                break;
+            case 'fold':
                 activePlayer.isOut = true;
-                actionDisplayAmount = activePlayer.numberOfChips;
-                activePlayer.numberOfChips = 0;
-            }
-            else {
-                activePlayer.numberOfChips -= amountToCall;
-            }
-            game.currentPotAmount += amountToCall;
-            activePlayer.currentBet = game.currentBet;
-            break;
-        case 'bet': 
-            setIsPlayedFalseExceptCurrentPlayer(game);
-            actionDisplayAmount = actionAmount;
-            if (actionAmount >= activePlayer.numberOfChips) {
-                isAllIn = true;
-                activePlayer.isOut = true;
-                actionDisplayAmount = activePlayer.numberOfChips;
-                activePlayer.numberOfChips = 0;
-            }
-            else {
-                activePlayer.numberOfChips -= actionAmount;
-            }
-            game.currentPotAmount += actionAmount;
-            activePlayer.currentBet = actionAmount;
-            game.currentBet = actionAmount;
-            break;
-        case 'raise': 
-            setIsPlayedFalseExceptCurrentPlayer(game);
-            actionDisplayAmount = actionAmount;
-            var totalBet = (game.currentBet - activePlayer.currentBet) + actionAmount;
-            if (totalBet >= activePlayer.numberOfChips) {
-                isAllIn = true;
-                activePlayer.isOut = true;
-                actionDisplayAmount = activePlayer.numberOfChips;
-                activePlayer.numberOfChips = 0;
-            }
-            else {
-                activePlayer.numberOfChips -= totalBet;
-            }
-            game.currentPotAmount += totalBet;
-            game.currentBet += actionAmount;
-            activePlayer.currentBet = game.currentBet;
-            break;
-        case 'fold':
-            activePlayer.isOut = true;
-            activePlayer.card1 = null;
-            activePlayer.card2 = null;
-            break;
-    }
+                activePlayer.card1 = null;
+                activePlayer.card2 = null;
+                break;
+        }
 
-    var actionText = 'Player "' + activePlayer.name + '" ';
-    if (isAllIn) {
-        actionText += 'goes all in (' + actionDisplayAmount + ')';
+        var actionText = 'Player "' + activePlayer.name + '" ';
+        if (isAllIn) {
+            actionText += 'goes all in (' + actionDisplayAmount + ')';
+        }
+        else if (actionType === 'call' || actionType === 'raise' || actionType === 'bet') {
+            actionText += actionType + 's ' + actionDisplayAmount;
+        }
+        else {
+            actionText += actionType + 's';
+        }
+        
+        endTurn(game, actionText);
+    } catch (error) {
+        // todo: better error-handling
+        console.log("error handling next user action. " + error.name + ": " + error.message + ", " + error.stack);
     }
-    else if (actionType === 'call' || actionType === 'raise' || actionType === 'bet') {
-        actionText += actionType + 's ' + actionDisplayAmount;
-    }
-    else {
-        actionText += actionType + 's';
-    }
-    
-    endTurn(game, actionText);
 }
 
 var incrementTurnIndex = function(game, isBeforeDeal = false) {
@@ -731,26 +736,31 @@ var getActivePlayersCount = function(players) {
 }
  
 var beginRound = function(game) {
-    var activePlayersCount = getActivePlayersCount(game.players);
-    if (activePlayersCount < 2) { // all players but one are all-in
-        game.roundNumber = NUMBER_OF_ROUNDS;
-        endTurn(game);
-    }
-    else {
-        game.currentTurnIndex = game.bigBlindIndex + 1;
-        incrementTurnIndex(game);
-
-        if (game.currentTurnIndex >= game.players.length) {
-            game.currentTurnIndex = 0;
+    try {
+        var activePlayersCount = getActivePlayersCount(game.players);
+        if (activePlayersCount < 2) { // all players but one are all-in
+            game.roundNumber = NUMBER_OF_ROUNDS;
+            endTurn(game);
         }
+        else {
+            game.currentTurnIndex = game.bigBlindIndex + 1;
+            incrementTurnIndex(game);
 
-        game.currentBet = 0;
-        game.players.forEach(player => {
-            player.currentBet = 0;
-            player.isPlayed = false;
-        });
+            if (game.currentTurnIndex >= game.players.length) {
+                game.currentTurnIndex = 0;
+            }
 
-        startNextTurn(game);
+            game.currentBet = 0;
+            game.players.forEach(player => {
+                player.currentBet = 0;
+                player.isPlayed = false;
+            });
+
+            startNextTurn(game);
+        }
+    } catch (error) {
+        // todo: better error-handling
+        console.log("ERROR starting next round. " + error.name + ": " + error.message + ", " + error.stack);
     }
 }
 
@@ -1462,14 +1472,19 @@ var addChips = function(messageData) {
 
 var handleUserAction = function(messageData) {
     getGameById(messageData.gameId, function(game) {
-        if (messageData.playerName === game.players[game.currentTurnIndex].name) {
-            if (messageData.actionType === 'showCards') {
-                game.players[game.currentTurnIndex].isShowingHand = true;
-                sendMessageToClients(game.id, { game });
+        try {
+            if (messageData.playerName === game.players[game.currentTurnIndex].name) {
+                if (messageData.actionType === 'showCards') {
+                    game.players[game.currentTurnIndex].isShowingHand = true;
+                    sendMessageToClients(game.id, { game });
+                }
+                else {
+                    onNextUserAction(game, messageData.actionType, messageData.actionAmount);
+                }
             }
-            else {
-                onNextUserAction(game, messageData.actionType, messageData.actionAmount);
-            }
+        } catch (error) {
+            // todo: better error-handling
+            console.log("ERROR handling user action " + error.name + ": " + error.message + ", " + error.stack);
         }
     });
 }
