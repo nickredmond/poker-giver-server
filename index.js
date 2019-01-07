@@ -1461,6 +1461,14 @@ var addChips = function(messageData) {
     addChipsRequestsByPlayerName[messageData.playerName] = messageData.numberOfChips;
 }
 
+var handleUserAction = function(messageData) {
+    getGameById(messageData.gameId, function(game) {
+        if (messageData.playerName === game.players[game.currentTurnIndex]) {
+            onNextUserAction(game, messageData.actionType, messageData.actionAmount);
+        }
+    });
+}
+
 wss.on('connection', function(ws) {
     console.log("made connection")
     // if (!originIsAllowed(request.origin)) {
@@ -1486,6 +1494,8 @@ wss.on('connection', function(ws) {
                     break;
                 case 'addChips': 
                     addChips(messageData);
+                case 'userAction':
+                    handleUserAction(messageData);
                 default:
                     console.log("WARN: unknown request action '" + messageData.action + "' received, so nothing will be done.");
                     break;
