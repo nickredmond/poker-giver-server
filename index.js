@@ -840,7 +840,7 @@ var endTurn = function(game, actionMessage) {
                                 saveGame(game, function() {
                                     beginRound(game);
                                 });
-                            }, 750); // allow for front-end animation AND bot players
+                            }, 1500); // allow for front-end animation AND bot players
                         }
                     }
                     action = 'flop';
