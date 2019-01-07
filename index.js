@@ -1429,14 +1429,12 @@ var joinGame = function(messageData, connection) {
                             isPlayed: true,
                             isOut: true
                         };
-                        // todo: restore this after testing is complete
-                        game.players[0] = player;
-                        // if (game.players.length < 8) {
-                        //     game.players.push(player);
-                        // }
-                        // else {
-                        //     game.players[botIndex] = player;
-                        // }
+                        if (game.players.length < 8) {
+                            game.players.push(player);
+                        }
+                        else {
+                            game.players[botIndex] = player;
+                        }
                         
                         saveGame(game, function() {
                             if (!isGameBegun) {
@@ -1444,7 +1442,6 @@ var joinGame = function(messageData, connection) {
                                 beginGame(games[0]);
                                 isGameBegun = true;
                             }
-                            connection.send(JSON.stringify({ game }));
                         });
                     }
                     else {
