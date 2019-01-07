@@ -1429,12 +1429,14 @@ var joinGame = function(messageData, connection) {
                             isPlayed: true,
                             isOut: true
                         };
-                        if (game.players.length < 8) {
-                            game.players.push(player);
-                        }
-                        else {
-                            game.players[botIndex] = player;
-                        }
+                        // todo: restore this after testing is complete
+                        game.players[0] = player;
+                        // if (game.players.length < 8) {
+                        //     game.players.push(player);
+                        // }
+                        // else {
+                        //     game.players[botIndex] = player;
+                        // }
                         
                         saveGame(game, function() {
                             if (!isGameBegun) {
