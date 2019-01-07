@@ -793,103 +793,105 @@ var isAllPlayersPlayed = function(players) {
 
 var NUMBER_OF_ROUNDS = 4; // pre-flop, flop, turn, river
 var endTurn = function(game, actionMessage) {
-    try {
-        var message = actionMessage;
-        var action = null;
-
-        var onlyPlayerIn = getOnlyPlayerIn(game.players);
-        var isRoundComplete = onlyPlayerIn || isAllPlayersPlayed(game.players); 
-        logMessage('trace', 'is round complete: ' + isRoundComplete);
-
-        if (isRoundComplete) {
-            if (onlyPlayerIn || game.cardsOnTable.length === 5) {
-                var winningPlayers = [];
-
-                if (onlyPlayerIn) {
-                    onlyPlayerIn.numberOfChips += game.currentPotAmount;
-                    message = onlyPlayerIn.name + ' wins. All other players folded.';
+    if (!isGamesReset) {
+        try {
+            var message = actionMessage;
+            var action = null;
+    
+            var onlyPlayerIn = getOnlyPlayerIn(game.players);
+            var isRoundComplete = onlyPlayerIn || isAllPlayersPlayed(game.players); 
+            logMessage('trace', 'is round complete: ' + isRoundComplete);
+    
+            if (isRoundComplete) {
+                if (onlyPlayerIn || game.cardsOnTable.length === 5) {
+                    var winningPlayers = [];
+    
+                    if (onlyPlayerIn) {
+                        onlyPlayerIn.numberOfChips += game.currentPotAmount;
+                        message = onlyPlayerIn.name + ' wins. All other players folded.';
+                    }
+                    else {
+                        var winningResult = determineWinningAmountsByPlayerIndex(game);
+                        winningResult.playerRewards.forEach(reward => {
+                            var player = game.players[reward.playerIndex];
+                            player.numberOfChips += reward.winningAmount;
+                            player.isShowingHand = true;
+                            winningPlayers.push(game.players[reward.playerIndex]);
+                        });
+                        message = winningResult.message;
+                    }
+    
+                    game.players.forEach(player => {
+                        if (player.numberOfChips <= 0) {
+                            //setMessageText('Player ' + player.name + ' has run out of chips.');
+                            // todo: boot player, or let player add chips until their turn? 
+                            // also fix timing of this message
+                        }
+                    });
+    
+                    game.players.forEach(player => {
+                        if (addChipsRequestsByPlayerName[player.name]) {
+                            player.numberOfChips += addChipsRequestsByPlayerName[player.name];
+                            delete addChipsRequestsByPlayerName[player.name];
+                        }
+                    });
+                    
+                    // todo: maybe make animation of pot being rewarded or some shit
+                    setTimeout(() => {
+                        try {
+                            game.cardsOnTable = [];
+                            game.roundNumber = 1;
+    
+                            saveGame(game, function() {
+                                beginDeal(game, function() {
+                                    startNextTurn(game);
+                                });
+                            });
+                        } catch (error) {
+                            console.log("ERROR while starting new hand. " + error.name + ", " + error.message + ", " + error.stack);
+                        }
+                    }, 5000);
                 }
                 else {
-                    var winningResult = determineWinningAmountsByPlayerIndex(game);
-                    winningResult.playerRewards.forEach(reward => {
-                        var player = game.players[reward.playerIndex];
-                        player.numberOfChips += reward.winningAmount;
-                        player.isShowingHand = true;
-                        winningPlayers.push(game.players[reward.playerIndex]);
-                    });
-                    message = winningResult.message;
-                }
-
-                game.players.forEach(player => {
-                    if (player.numberOfChips <= 0) {
-                        //setMessageText('Player ' + player.name + ' has run out of chips.');
-                        // todo: boot player, or let player add chips until their turn? 
-                        // also fix timing of this message
+                    game.roundNumber++;
+                    drawCardFromDeck(game); // burn card
+    
+                    logMessage('trace', 'incrementing rounding number to ' + game.roundNumber);
+                    if (game.roundNumber === 2) { // flop
+                        logMessage('trace', 'dealing flop');
+    
+                        for (var i = 0; i < 3; i++) {
+                            game.cardsOnTable.push(drawCardFromDeck(game));
+                            if (i === 2) {
+                                setTimeout(() => {
+                                    logMessage('trace', 'beginning round after flop');
+                                    saveGame(game, function() {
+                                        beginRound(game);
+                                    });
+                                }, 1500); // allow for front-end animation AND bot players
+                            }
+                        }
+                        action = 'flop';
                     }
-                });
-
-                game.players.forEach(player => {
-                    if (addChipsRequestsByPlayerName[player.name]) {
-                        player.numberOfChips += addChipsRequestsByPlayerName[player.name];
-                        delete addChipsRequestsByPlayerName[player.name];
-                    }
-                });
-                
-                // todo: maybe make animation of pot being rewarded or some shit
-                setTimeout(() => {
-                    try {
-                        game.cardsOnTable = [];
-                        game.roundNumber = 1;
-
+                    else { // turn, river
+                        game.cardsOnTable.push(drawCardFromDeck(game));
                         saveGame(game, function() {
-                            beginDeal(game, function() {
-                                startNextTurn(game);
-                            });
+                            beginRound(game);
                         });
-                    } catch (error) {
-                        console.log("ERROR while starting new hand. " + error.name + ", " + error.message + ", " + error.stack);
                     }
-                }, 5000);
+                }
             }
             else {
-                game.roundNumber++;
-                drawCardFromDeck(game); // burn card
-
-                logMessage('trace', 'incrementing rounding number to ' + game.roundNumber);
-                if (game.roundNumber === 2) { // flop
-                    logMessage('trace', 'dealing flop');
-
-                    for (var i = 0; i < 3; i++) {
-                        game.cardsOnTable.push(drawCardFromDeck(game));
-                        if (i === 2) {
-                            setTimeout(() => {
-                                logMessage('trace', 'beginning round after flop');
-                                saveGame(game, function() {
-                                    beginRound(game);
-                                });
-                            }, 1500); // allow for front-end animation AND bot players
-                        }
-                    }
-                    action = 'flop';
-                }
-                else { // turn, river
-                    game.cardsOnTable.push(drawCardFromDeck(game));
-                    saveGame(game, function() {
-                        beginRound(game);
-                    });
-                }
+                logMessage('trace', 'starting next turn')
+                incrementTurnIndex(game);
+                startNextTurn(game);
             }
+    
+            sendMessageToClients(game.id, { message, game, action })
+        } catch (error) {
+            // todo: refund chips and deal new hand?
+            console.log("error: [ name:" + error.name + ", message:" + error.message + ", stack: " + error.stack + " ]");
         }
-        else {
-            logMessage('trace', 'starting next turn')
-            incrementTurnIndex(game);
-            startNextTurn(game);
-        }
-
-        sendMessageToClients(game.id, { message, game, action })
-    } catch (error) {
-        // todo: refund chips and deal new hand?
-        console.log("error: [ name:" + error.name + ", message:" + error.message + ", stack: " + error.stack + " ]");
     }
 }
 
@@ -1442,6 +1444,7 @@ console.log("http server listening on %d", port)
 var wss = new WebSocketServer({server: server})
 console.log("websocket server created")
 
+var isGamesReset = false;
 var isGameBegun = false;
 var joinGame = function(messageData, connection) {
     getGameById(messageData.gameId, function(game) {
@@ -1476,6 +1479,7 @@ var joinGame = function(messageData, connection) {
                         
                         saveGame(game, function() {
                             if (!isGameBegun) {
+                                isGamesReset = false;
                                 // todo: begin games dynamically
                                 beginGame(games[0]);
                                 isGameBegun = true;
@@ -1517,53 +1521,7 @@ var handleUserAction = function(messageData) {
     });
 }
 
-wss.on('connection', function(ws) {
-    console.log("made connection")
-    // if (!originIsAllowed(request.origin)) {
-    //   // Make sure we only accept requests from an allowed origin
-    //   request.reject();
-    //   console.log((new Date()) + ' Connection from origin ' + request.origin + ' rejected.');
-    //   return;
-    // }
-    
-    // var connection = request.accept('active-game', request.origin);
-    // addConnection(connection);
-    addConnection(ws);
-
-    // console.log((new Date()) + ' Connection accepted.');
-    ws.on('message', function(message) {
-        // if (message.type === 'utf8') {
-            console.log('Received Message: ' + message);
-
-            const messageData = JSON.parse(message);
-            switch (messageData.action) {
-                case 'joinGame': 
-                    joinGame(messageData, ws);
-                    break;
-                case 'addChips': 
-                    addChips(messageData);
-                case 'userAction':
-                    handleUserAction(messageData);
-                    break;
-                case 'ping':
-                    break;
-                default:
-                    console.log("WARN: unknown request action '" + messageData.action + "' received, so nothing will be done.");
-                    break;
-            }
-        // }
-        // else {
-        //     connection.sendUTF(JSON.stringify({ error: 'Only UTF-8 strings are accepted.' }));
-        // }
-    });
-    ws.on('close', function() {
-        console.log((new Date()) + ' Peer disconnected.');
-    });
-});
-
-// SECTION:: games and data
-
-var games = [{
+var testGame = {
     id: '73bf5cc7-70e3-4ed2-8766-8a2e47e6fc2a',
     currentTurnIndex: 0,
     littleBlindAmount: 5,
@@ -1636,7 +1594,65 @@ var games = [{
             isOut: false
         }
     ]
-}];
+};
+var resetAllGames = function() {
+    isGamesReset = true;
+    games = [
+        testGame
+    ];
+}
+
+wss.on('connection', function(ws) {
+    console.log("made connection")
+    // if (!originIsAllowed(request.origin)) {
+    //   // Make sure we only accept requests from an allowed origin
+    //   request.reject();
+    //   console.log((new Date()) + ' Connection from origin ' + request.origin + ' rejected.');
+    //   return;
+    // }
+    
+    // var connection = request.accept('active-game', request.origin);
+    // addConnection(connection);
+    addConnection(ws);
+
+    // console.log((new Date()) + ' Connection accepted.');
+    ws.on('message', function(message) {
+        // if (message.type === 'utf8') {
+            console.log('Received Message: ' + message);
+
+            const messageData = JSON.parse(message);
+            switch (messageData.action) {
+                case 'joinGame': 
+                    joinGame(messageData, ws);
+                    break;
+                case 'addChips': 
+                    addChips(messageData);
+                case 'userAction':
+                    handleUserAction(messageData);
+                    break;
+                case 'ping':
+                    break;
+                case 'resetGames': 
+                    // todo: remove this from prod, or lock it down
+                    resetAllGames();
+                    break;
+                default:
+                    console.log("WARN: unknown request action '" + messageData.action + "' received, so nothing will be done.");
+                    break;
+            }
+        // }
+        // else {
+        //     connection.sendUTF(JSON.stringify({ error: 'Only UTF-8 strings are accepted.' }));
+        // }
+    });
+    ws.on('close', function() {
+        console.log((new Date()) + ' Peer disconnected.');
+    });
+});
+
+// SECTION:: games and data
+
+var games = [testGame];
 
 var humanPlayers = [
     {
