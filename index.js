@@ -1597,6 +1597,11 @@ var resetAllGames = function() {
     games = [
         testGame
     ];
+    connections.forEach(connection => {
+        connection.terminate();
+    });
+    connections = []
+    connectionsByGameId = {};
 }
 
 wss.on('connection', function(ws) {
