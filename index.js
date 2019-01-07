@@ -837,7 +837,7 @@ var endTurn = function(game, actionMessage) {
                     });
                     
                     // todo: maybe make animation of pot being rewarded or some shit
-                    sendMessageToClients(game.id, { message, game, action })
+                    sendMessageToClients(game.id, { message, game })
                     setTimeout(() => {
                         try {
                             game.cardsOnTable = [];
@@ -884,6 +884,7 @@ var endTurn = function(game, actionMessage) {
             }
             else {
                 logMessage('trace', 'starting next turn')
+                sendMessageToClients(game.id, { message, game });
                 incrementTurnIndex(game);
                 startNextTurn(game);
             }
