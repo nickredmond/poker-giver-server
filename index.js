@@ -1478,12 +1478,9 @@ var joinGame = function(messageData, connection) {
                         }
                         
                         saveGame(game, function() {
-                            if (!isGameBegun) {
-                                isGamesReset = false;
-                                // todo: begin games dynamically
-                                beginGame(games[0]);
-                                isGameBegun = true;
-                            }
+                            isGamesReset = false;
+                            // todo: begin games dynamically
+                            beginGame(games[0]);
                         });
                     }
                     else {
