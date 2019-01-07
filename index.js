@@ -13,6 +13,19 @@ var addClientToGame = function(gameId, clientConnection) {
     }
 }
 
+var minLogLevel = 'trace';
+var logLevels = {
+    'trace': 1,
+    'info': 2,
+    'warn': 3,
+    'error': 4
+};
+var logMessage =  function(logLevel, message) {
+    if (logLevels[logLevel] >= logLevels[minLogLevel]) {
+        console.log(logLevel.toUpperCase() + ': ' + message);
+    }
+}
+
 var sendMessageToClients = function(gameId, payload) {
     var clientConnections = connectionsByGameId[gameId];
     if (clientConnections) {
@@ -724,7 +737,11 @@ var startNextTurn = function(game) {
         // todo: else if human player then wait for their turn. 
         //      then, use events to update chip counts and actions for other players (add chips, bet/raise)
         if (!game.players[game.currentTurnIndex].isHuman) { // todo: do I really want AI in prod? maybe at first
+            logMessage('trace', 'beginning AI turn')
             beginAiTurn(game);
+        }
+        else {
+            logMessage('trace', 'waiting for human player')
         }
     });
 }
@@ -737,6 +754,7 @@ var getActivePlayersCount = function(players) {
  
 var beginRound = function(game) {
     try {
+        logMessage('trace', 'beginning next round')
         var activePlayersCount = getActivePlayersCount(game.players);
         if (activePlayersCount < 2) { // all players but one are all-in
             game.roundNumber = NUMBER_OF_ROUNDS;
@@ -781,6 +799,7 @@ var endTurn = function(game, actionMessage) {
 
         var onlyPlayerIn = getOnlyPlayerIn(game.players);
         var isRoundComplete = onlyPlayerIn || isAllPlayersPlayed(game.players); 
+        logMessage('trace', 'is round complete: ' + isRoundComplete);
 
         if (isRoundComplete) {
             if (onlyPlayerIn || game.cardsOnTable.length === 5) {
@@ -818,25 +837,33 @@ var endTurn = function(game, actionMessage) {
                 
                 // todo: maybe make animation of pot being rewarded or some shit
                 setTimeout(() => {
-                    game.cardsOnTable = [];
-                    game.roundNumber = 1;
+                    try {
+                        game.cardsOnTable = [];
+                        game.roundNumber = 1;
 
-                    saveGame(game, function() {
-                        beginDeal(game, function() {
-                            startNextTurn(game);
+                        saveGame(game, function() {
+                            beginDeal(game, function() {
+                                startNextTurn(game);
+                            });
                         });
-                    });
+                    } catch (error) {
+                        console.log("ERROR while starting new hand. " + error.name + ", " + error.message + ", " + error.stack);
+                    }
                 }, 5000);
             }
             else {
                 game.roundNumber++;
                 drawCardFromDeck(game); // burn card
 
+                logMessage('trace', 'incrementing rounding number to ' + roundNumber);
                 if (game.roundNumber === 2) { // flop
+                    logMessage('trace', 'dealing flop');
+
                     for (var i = 0; i < 3; i++) {
                         game.cardsOnTable.push(drawCardFromDeck(game));
                         if (i === 2) {
                             setTimeout(() => {
+                                logMessage('trace', 'beginning round after flop');
                                 saveGame(game, function() {
                                     beginRound(game);
                                 });
@@ -854,6 +881,7 @@ var endTurn = function(game, actionMessage) {
             }
         }
         else {
+            logMessage('trace', 'starting next turn')
             incrementTurnIndex(game);
             startNextTurn(game);
         }
