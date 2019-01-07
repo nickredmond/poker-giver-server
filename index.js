@@ -1516,6 +1516,9 @@ wss.on('connection', function(ws) {
                     addChips(messageData);
                 case 'userAction':
                     handleUserAction(messageData);
+                    break;
+                case 'ping':
+                    break;
                 default:
                     console.log("WARN: unknown request action '" + messageData.action + "' received, so nothing will be done.");
                     break;
