@@ -1,4 +1,5 @@
 var API_BASE_URL = 'https://poker-giver-api.herokuapp.com/';
+const fetch = require('node-fetch');
 
 // todo: do I want to store these, or is in-memory fine?
 var connectionsByGameId = {};
@@ -1510,7 +1511,7 @@ wss.on('connection', function(ws) {
 // also, maybe store validTokens list in memory so only need to POST /authenticate once?
 var authenticate = function(token, onSuccess, onError) {
     fetch(API_BASE_URL + 'authenticate', {
-        method: 'POST',
+        method: 'post',
         headers: {
             'Content-Type': 'application/json'
         },
@@ -1542,7 +1543,7 @@ var getGameById = function(id, onSuccess, onError) {
 }
 var saveGame = function(game, onSuccess) {
     fetch(API_BASE_URL + 'game/' + game.id, {
-        method: 'PUT',
+        method: 'put',
         headers: {
             'Content-Type': 'application/json'
         },
@@ -1555,7 +1556,7 @@ var saveGame = function(game, onSuccess) {
 }
 var deleteGame = function(gameId, onSuccess) {
     fetch(API_BASE_URL + 'game/' + gameId, {
-        method: 'DELETE'
+        method: 'delete'
     })
     .then(() => {
         onSuccess();
