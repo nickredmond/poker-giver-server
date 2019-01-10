@@ -1,3 +1,5 @@
+var API_BASE_URL = 'https://poker-giver-api.herokuapp.com/';
+
 // todo: do I want to store these, or is in-memory fine?
 var connectionsByGameId = {};
 var connections = [];
