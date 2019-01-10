@@ -1539,7 +1539,6 @@ var getGameById = function(id, onSuccess, onError) {
                 onError({ error: 'Game not found.' });
             }
         })
-    onSuccess(matches.length > 0 ? matches[0] : null);
 }
 var saveGame = function(game, onSuccess) {
     fetch(API_BASE_URL + 'game/' + game.id, {
