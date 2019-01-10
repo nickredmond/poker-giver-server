@@ -734,8 +734,6 @@ var getOnlyPlayerIn = function(players) {
 
 var startNextTurn = function(game) {
     saveGame(game, function() {
-        // todo: else if human player then wait for their turn. 
-        //      then, use events to update chip counts and actions for other players (add chips, bet/raise)
         if (!game.players[game.currentTurnIndex].isHuman) { // todo: do I really want AI in prod? maybe at first
             logMessage('trace', 'beginning AI turn')
             beginAiTurn(game);
@@ -794,104 +792,102 @@ var isAllPlayersPlayed = function(players) {
 
 var NUMBER_OF_ROUNDS = 4; // pre-flop, flop, turn, river
 var endTurn = function(game, actionMessage) {
-    if (!isGamesReset) {
-        try {
-            var message = actionMessage;
-    
-            var onlyPlayerIn = getOnlyPlayerIn(game.players);
-            var isRoundComplete = onlyPlayerIn || isAllPlayersPlayed(game.players); 
-            logMessage('trace', 'is round complete: ' + isRoundComplete);
-    
-            if (isRoundComplete) {
-                if (onlyPlayerIn || game.cardsOnTable.length === 5) {
-                    var winningPlayers = [];
-    
-                    if (onlyPlayerIn) {
-                        onlyPlayerIn.numberOfChips += game.currentPotAmount;
-                        message = onlyPlayerIn.name + ' wins. All other players folded.';
-                    }
-                    else {
-                        var winningResult = determineWinningAmountsByPlayerIndex(game);
-                        winningResult.playerRewards.forEach(reward => {
-                            var player = game.players[reward.playerIndex];
-                            player.numberOfChips += reward.winningAmount;
-                            player.isShowingHand = true;
-                            winningPlayers.push(game.players[reward.playerIndex]);
-                        });
-                        message = winningResult.message;
-                    }
-    
-                    game.players.forEach(player => {
-                        if (player.numberOfChips <= 0) {
-                            //setMessageText('Player ' + player.name + ' has run out of chips.');
-                            // todo: boot player, or let player add chips until their turn? 
-                            // also fix timing of this message
-                        }
-                    });
-    
-                    game.players.forEach(player => {
-                        if (addChipsRequestsByPlayerName[player.name]) {
-                            player.numberOfChips += addChipsRequestsByPlayerName[player.name];
-                            delete addChipsRequestsByPlayerName[player.name];
-                        }
-                    });
-                    
-                    // todo: maybe make animation of pot being rewarded or some shit
-                    sendMessageToClients(game.id, { message, game })
-                    setTimeout(() => {
-                        try {
-                            game.cardsOnTable = [];
-                            game.roundNumber = 1;
-    
-                            saveGame(game, function() {
-                                beginDeal(game, function() {
-                                    startNextTurn(game);
-                                });
-                            });
-                        } catch (error) {
-                            console.log("ERROR while starting new hand. " + error.name + ", " + error.message + ", " + error.stack);
-                        }
-                    }, 5000);
+    try {
+        var message = actionMessage;
+
+        var onlyPlayerIn = getOnlyPlayerIn(game.players);
+        var isRoundComplete = onlyPlayerIn || isAllPlayersPlayed(game.players); 
+        logMessage('trace', 'is round complete: ' + isRoundComplete);
+
+        if (isRoundComplete) {
+            if (onlyPlayerIn || game.cardsOnTable.length === 5) {
+                var winningPlayers = [];
+
+                if (onlyPlayerIn) {
+                    onlyPlayerIn.numberOfChips += game.currentPotAmount;
+                    message = onlyPlayerIn.name + ' wins. All other players folded.';
                 }
                 else {
-                    game.roundNumber++;
-                    drawCardFromDeck(game); // burn card
-    
-                    logMessage('trace', 'incrementing rounding number to ' + game.roundNumber);
-                    if (game.roundNumber === 2) { // flop
-                        logMessage('trace', 'dealing flop');
-    
-                        for (var i = 0; i < 3; i++) {
-                            game.cardsOnTable.push(drawCardFromDeck(game));
-                            if (i === 2) {
-                                sendMessageToClients(game.id, { message, game, action: 'flop' })
-                                setTimeout(() => {
-                                    logMessage('trace', 'beginning round after flop');
-                                    saveGame(game, function() {
-                                        beginRound(game);
-                                    });
-                                }, 1500); // allow for front-end animation AND bot players
-                            }
-                        }
-                    }
-                    else { // turn, river
-                        game.cardsOnTable.push(drawCardFromDeck(game));
-                        saveGame(game, function() {
-                            beginRound(game, message);
-                        });
-                    }
+                    var winningResult = determineWinningAmountsByPlayerIndex(game);
+                    winningResult.playerRewards.forEach(reward => {
+                        var player = game.players[reward.playerIndex];
+                        player.numberOfChips += reward.winningAmount;
+                        player.isShowingHand = true;
+                        winningPlayers.push(game.players[reward.playerIndex]);
+                    });
+                    message = winningResult.message;
                 }
+
+                game.players.forEach(player => {
+                    if (player.numberOfChips <= 0) {
+                        //setMessageText('Player ' + player.name + ' has run out of chips.');
+                        // todo: boot player, or let player add chips until their turn? 
+                        // also fix timing of this message
+                    }
+                });
+
+                game.players.forEach(player => {
+                    if (addChipsRequestsByPlayerName[player.name]) {
+                        player.numberOfChips += addChipsRequestsByPlayerName[player.name];
+                        delete addChipsRequestsByPlayerName[player.name];
+                    }
+                });
+                
+                // todo: maybe make animation of pot being rewarded or some shit
+                sendMessageToClients(game.id, { message, game })
+                setTimeout(() => {
+                    try {
+                        game.cardsOnTable = [];
+                        game.roundNumber = 1;
+
+                        saveGame(game, function() {
+                            beginDeal(game, function() {
+                                startNextTurn(game);
+                            });
+                        });
+                    } catch (error) {
+                        console.log("ERROR while starting new hand. " + error.name + ", " + error.message + ", " + error.stack);
+                    }
+                }, 5000);
             }
             else {
-                logMessage('trace', 'starting next turn')
-                incrementTurnIndex(game);
-                sendMessageToClients(game.id, { message, game });
-                startNextTurn(game);
+                game.roundNumber++;
+                drawCardFromDeck(game); // burn card
+
+                logMessage('trace', 'incrementing rounding number to ' + game.roundNumber);
+                if (game.roundNumber === 2) { // flop
+                    logMessage('trace', 'dealing flop');
+
+                    for (var i = 0; i < 3; i++) {
+                        game.cardsOnTable.push(drawCardFromDeck(game));
+                        if (i === 2) {
+                            sendMessageToClients(game.id, { message, game, action: 'flop' })
+                            setTimeout(() => {
+                                logMessage('trace', 'beginning round after flop');
+                                saveGame(game, function() {
+                                    beginRound(game);
+                                });
+                            }, 1500); // allow for front-end animation AND bot players
+                        }
+                    }
+                }
+                else { // turn, river
+                    game.cardsOnTable.push(drawCardFromDeck(game));
+                    saveGame(game, function() {
+                        beginRound(game, message);
+                    });
+                }
             }
-        } catch (error) {
-            // todo: refund chips and deal new hand?
-            console.log("error: [ name:" + error.name + ", message:" + error.message + ", stack: " + error.stack + " ]");
         }
+        else {
+            logMessage('trace', 'starting next turn')
+            incrementTurnIndex(game);
+            sendMessageToClients(game.id, { message, game });
+            startNextTurn(game);
+        }
+    } catch (error) {
+        // todo: refund chips and deal new hand?
+        console.log("error: [ name:" + error.name + ", message:" + error.message + ", stack: " + error.stack + " ]");
     }
 }
 
@@ -1372,62 +1368,6 @@ var groupBy = function(items, propertyName) {
     return groups;
 }
 
-//#endregion
-
-// const express = require('express');
-// const bodyParser = require('body-parser');
-// const mongodb = require('mongodb');
-// const jwt = require('jsonwebtoken');
-// const JWT_SECRET = process.env.ACCESS_TOKEN || "testsecret";
-
-// const allowAnyOrigin = function(req, res, next) {
-//     res.header("Access-Control-Allow-Origin", "*");
-//     res.header('Access-Control-Allow-Headers', 'Content-Type');
-//     next();
-// };
-
-// var app = express();
-// app.use(bodyParser.json());
-// app.use(allowAnyOrigin);
-
-// const port = process.env.PORT || 8080;
-// app.listen(port, () => {
-//     console.log("POKER-GIVER-SERVER app started.");
-// });
-
-// app.post("/login", (req, res) => {
-//     const username = req.body.username;
-//     const password = req.body.password;
-
-//     //     res.send({ accessToken: ACCESS_TOKEN });
-//     //     res.status(400).send({ isWrongUserCode: true });
-// });
-
-////// DEPRECATED ////////
-// var WebSocketServer = require('websocket').server;
-// var http = require('http');
- 
-// var server = http.createServer(function(request, response) {
-//     console.log((new Date()) + ' Received request for ' + request.url);
-//     response.writeHead(404);
-//     response.end();
-// });
-
-// const port = process.env.PORT || 8080;
-// server.listen(port, function() {
-//     console.log((new Date()) + ' Server is listening on port ' + port);
-// });
- 
-// wsServer = new WebSocketServer({
-//     httpServer: server,
-//     // You should not use autoAcceptConnections for production
-//     // applications, as it defeats all standard cross-origin protection
-//     // facilities built into the protocol and the browser.  You should
-//     // *always* verify the connection's origin and decide whether or not
-//     // to accept it.
-//     autoAcceptConnections: false
-// });
-
 var WebSocketServer = require("ws").Server
 var http = require("http")
 var express = require("express")
@@ -1444,55 +1384,66 @@ console.log("http server listening on %d", port)
 var wss = new WebSocketServer({server: server})
 console.log("websocket server created")
 
-var isGamesReset = false;
-var isGameBegun = false;
 var joinGame = function(messageData, connection) {
-    getGameById(messageData.gameId, function(game) {
-        if (game) {
-            var botIndex = null;
-            for (var i = 0; i < game.players.length && botIndex === null; i++) {
-                if (!game.players[i].isHuman) {
-                    botIndex = i;
-                }
-            }
-
-            // todo: add blocking to prevent simultaneous requests from breaking table
-            if (game.players.length < 8 || botIndex !== null) {
-                getPlayerById(messageData.playerId, function(player) {
-                    if (player) {
+    authenticate(messageData.token, 
+        () => {
+            getGameById(messageData.gameId, function(game) {
+                if (game) {
+                    // todo: add blocking to prevent simultaneous requests from breaking table
+                    // like perhaps a queue of join requests per table? getGame > addPlayer > save > next
+                    if (!game.isFull) {
                         addClientToGame(messageData.gameId, connection);
-                        
+
                         var player = {
-                            name: player.name,
+                            name: messageData.playerName,
                             isHuman: true,
                             numberOfChips: messageData.buyInAmount,
                             currentBet: 0,
                             isPlayed: true,
                             isOut: true
                         };
-                        if (game.players.length < 8) {
-                            game.players.push(player);
-                        }
-                        else {
-                            game.players[botIndex] = player;
-                        }
+                        game.players.push(player);
                         
                         saveGame(game, function() {
-                            isGamesReset = false;
-                            // todo: begin games dynamically
-                            beginGame(games[0]);
+                            if (!game.isStarted) {
+                                game.isStarted = true;
+                                beginGame(game);
+                            }
                         });
                     }
                     else {
-                        // todo: error handling
+                        connection.send(JSON.stringify({ isTableFull: true, errorMessage: 'Table is full!' }));
                     }
-                });
-            }
+                }
+                else {
+                    connection.send(JSON.stringify({ errorMessage: 'Error joining table.' }));
+                }
+            });
+        },
+        () => {
+            connection.send(JSON.stringify({ errorMessage: 'Error joining table: not allowed.' }));
+        });
+}
+
+var startGame = function(messageData, connection) {
+    authenticate(messageData.token, 
+        () => {
+            getGameById(messageData.gameId, function(game) {
+                if (game) {
+                    if (!game.isStarted) {
+                        game.isStarted = true;
+                        beginGame(game);
+                    }
+                }
+                else {
+                    connection.send(JSON.stringify({ errorMessage: 'Error joining table.' }));
+                }
+            });
+        },
+        () => {
+            connection.send(JSON.stringify({ errorMessage: 'Error joining table: not allowed.' }));
         }
-        else {
-            // todo: error handling
-        }
-    });
+    );
 }
 
 var addChips = function(messageData) {
@@ -1518,227 +1469,96 @@ var handleUserAction = function(messageData) {
     });
 }
 
-var testGame = {
-    id: '73bf5cc7-70e3-4ed2-8766-8a2e47e6fc2a',
-    currentTurnIndex: 0,
-    littleBlindAmount: 5,
-    bigBlindAmount: 10,
-    bigBlindIndex: 0,
-    littleBlindIndex: 0,
-    currentBet: 0,
-    currentPotAmount: 0,
-    cardsOnTable: [],
-    currentDeck: [],
-    currentCardIndex: 0,
-    roundNumber: 1,
-    players: [
-        {
-            name: 'Legolas',
-            isHuman: false,
-            numberOfChips: 2500,
-            currentBet: 0,
-            isPlayed: false,
-            isOut: false
-        },
-        {
-            name: 'Gryffindor',
-            isHuman: false,
-            numberOfChips: 2500,
-            isPlayed: false,
-            isOut: false
-        },
-        {
-            name: 'Slytherin',
-            isHuman: false,
-            numberOfChips: 2500,
-            isPlayed: false,
-            isOut: false
-        },
-        {
-            name: 'Ravenclaw',
-            isHuman: false,
-            numberOfChips: 2500,
-            isPlayed: false,
-            isOut: false
-        },
-        {
-            name: 'Hufflepuff',
-            isHuman: false,
-            numberOfChips: 2500,
-            isPlayed: false,
-            isOut: false
-        },
-        {
-            name: 'MichaelScott',
-            isHuman: false,
-            numberOfChips: 2500,
-            currentBet: 0,
-            isPlayed: false,
-            isOut: false
-        },
-        {
-            name: 'Dwight K.',
-            isHuman: false,
-            numberOfChips: 2500,
-            isPlayed: false,
-            isOut: false
-        },
-        {
-            name: 'CreedBratton',
-            isHuman: false,
-            numberOfChips: 2500,
-            isPlayed: false,
-            isOut: false
-        }
-    ]
-};
-var resetAllGames = function() {
-    isGamesReset = true;
-    games = [
-        JSON.parse(JSON.stringify(testGame))
-    ];
-    connections.forEach(connection => {
-        connection.terminate();
-    });
-    connections = []
-    connectionsByGameId = {};
-}
-
 wss.on('connection', function(ws) {
     console.log("made connection")
-    // if (!originIsAllowed(request.origin)) {
-    //   // Make sure we only accept requests from an allowed origin
-    //   request.reject();
-    //   console.log((new Date()) + ' Connection from origin ' + request.origin + ' rejected.');
-    //   return;
-    // }
-    
-    // var connection = request.accept('active-game', request.origin);
-    // addConnection(connection);
     addConnection(ws);
 
-    // console.log((new Date()) + ' Connection accepted.');
     ws.on('message', function(message) {
-        // if (message.type === 'utf8') {
-            console.log('Received Message: ' + message);
+        console.log('Received Message: ' + message);
 
-            const messageData = JSON.parse(message);
-            switch (messageData.action) {
-                case 'joinGame': 
-                    joinGame(messageData, ws);
-                    break;
-                case 'addChips': 
-                    addChips(messageData);
-                case 'userAction':
-                    handleUserAction(messageData);
-                    break;
-                case 'ping':
-                    break;
-                case 'resetGames': 
-                    // todo: remove this from prod, or lock it down
-                    resetAllGames();
-                    break;
-                default:
-                    console.log("WARN: unknown request action '" + messageData.action + "' received, so nothing will be done.");
-                    break;
-            }
-        // }
-        // else {
-        //     connection.sendUTF(JSON.stringify({ error: 'Only UTF-8 strings are accepted.' }));
-        // }
+        const messageData = JSON.parse(message);
+        switch (messageData.action) {
+            case 'joinGame': 
+                joinGame(messageData, ws);
+                break;
+            case 'addChips': 
+                addChips(messageData);
+            case 'userAction':
+                handleUserAction(messageData);
+                break;
+            case 'startGame':
+                startGame(messageData, ws);
+                break;
+            case 'ping':
+                break;
+            default:
+                console.log("WARN: unknown request action '" + messageData.action + "' received, so nothing will be done.");
+                break;
+        }
     });
     ws.on('close', function() {
+        // todo: remove connection from list; 
+        //      remove player from game;
+        //      if no players remain then reward chips and delete game, just like at end of round        
         console.log((new Date()) + ' Peer disconnected.');
     });
 });
 
-// SECTION:: games and data
-
-var games = [JSON.parse(JSON.stringify(testGame))];
-
-var humanPlayers = [
-    {
-        id: 'b3c1b8a9-9fdd-4a82-a12a-750542629b77',
-        name: 'Nick Redmond',
-        numberOfChips: 2000
-    }
-];
-
-var getPlayerById = function(id, onSuccess, onError) {
-    var matches = humanPlayers.filter(player => {
-        return player.id === id;
-    });
-    if (matches.length === 0) {
-        console.log("WARN: could not find player by ID " + id);
-    }
-    onSuccess(matches.length > 0 ? matches[0] : null);
+// todo: lock down all actions; authenticate before switch on action type
+// also, maybe store validTokens list in memory so only need to POST /authenticate once?
+var authenticate = function(token, onSuccess, onError) {
+    fetch(API_BASE_URL + 'authenticate', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(token)
+    })
+    .then(
+        () => {
+            onSuccess();
+        },
+        error => {
+            onError(error);
+        }
+    )
 }
 
-// todo: use database, then implement "saveGame" 
 var getGameById = function(id, onSuccess, onError) {
-    var matches = games.filter(game => {
-        return game.id === id;
-    });
-    if (matches.length === 0) {
-        console.log("WARN: could not find game by ID " + id);
-    }
+    fetch(API_BASE_URL + 'game/' + id)
+        .then(response => response.json())
+        .then(game => {
+            if (game) {
+                onSuccess(game);
+            }
+            else {
+                logMessage('warn', 'Could not find game with id ' + id);
+                onError({ error: 'Game not found.' });
+            }
+        })
     onSuccess(matches.length > 0 ? matches[0] : null);
 }
 var saveGame = function(game, onSuccess) {
-    var isSaved = false;
-    for (var i = 0; i < games.length && !isSaved; i++) {
-        if (games[i].id === game.id) {
-            games[i] = game;
-            onSuccess();
-        }
-    }
+    fetch(API_BASE_URL + 'game/' + game.id, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(game)
+    }) 
+    .then(response => response.json())
+    .then(() => {
+        onSuccess();
+    });
 }
-// var updatePlayers = function(gameId, players) {
-//     getGameById(gameId, function(game) {
-//         if (game) {
-//             game.players = players;
-//         }
-//         saveGame(game);
-//     });
-    
-// }
-// var updatePlayer = function(gameId, player) {
-//     getGameById(gameId, function(game) {
-//         if (game) {
-//             var isFound = false;
-//             for (var i = 0; i < game.players.length && !isFound; i++) {
-//                 if (game.players[i].name === player.name) {
-//                     game.players[i] = player;
-//                 }
-//             }
-//         }
-//         saveGame(game);
-//     });
-// }
-// var updateTurnIndex = function(gameId, turnIndex) {
-//     getGameById(gameId, function(game) {
-//         if (game) {
-//             game.currentTurnIndex = turnIndex;
-//         }
-//         saveGame(game);
-//     });
-// }
-// var updateCurrentBet = function(gameId, currentBet) {
-//     getGameById(gameId, function(game) {
-//         if (game) {
-//             game.currentBet = currentBet;
-//         }
-//         saveGame(game);
-//     });
-// }
-// var addCardsToTable = function(gameId, cards) {
-//     getGameById(gameId, function(game) {
-//         if (game) { 
-//             game.cardsOnTable = game.cardsOnTable.concat(cards);
-//         }
-//         saveGame(game);
-//     });
-// }
+var deleteGame = function(gameId, onSuccess) {
+    fetch(API_BASE_URL + 'game/' + gameId, {
+        method: 'DELETE'
+    })
+    .then(() => {
+        onSuccess();
+    });
+}
 
 // SECTION:: server logic
 var beginGame = function(game) {
