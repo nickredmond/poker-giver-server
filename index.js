@@ -721,6 +721,7 @@ var onNextUserAction = function(game, actionType, actionValue) {
 }
 
 var incrementTurnIndex = function(game, isBeforeDeal = false) {
+    logMessage('trace', 'incrementing turn index');
     do {
         game.currentTurnIndex = (game.currentTurnIndex + 1) % game.players.length;
     } while (
@@ -742,7 +743,7 @@ var startNextTurn = function(game) {
             beginAiTurn(game);
         }
         else {
-            logMessage('trace', 'waiting for human player')
+            logMessage('trace', 'waiting for human player ' + game.players[game.currentTurnIndex].name)
         }
     });
 }
