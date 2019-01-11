@@ -1456,8 +1456,9 @@ var addChips = function(messageData) {
 var handleUserAction = function(messageData) {
     getGameById(messageData.gameId, function(game) {
         try {
-            logMessage('trace', 'action received from user ' + messageData.playerName + ': ' + messageData.actionType)
+            logMessage('trace', 'action received from user ' + game.players[game.currentTurnIndex].name)
             if (messageData.playerName === game.players[game.currentTurnIndex].name) {
+                logMessage('trace', 'indigenous')
                 if (messageData.actionType === 'showCards') {
                     game.players[game.currentTurnIndex].isShowingHand = true;
                     sendMessageToClients(game.id, { game });
