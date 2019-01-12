@@ -1567,7 +1567,6 @@ var saveGame = function(game, onSuccess) {
         },
         body: JSON.stringify(game)
     }) 
-    .then(response => response.json())
     .then(() => {
         onSuccess();
     });
