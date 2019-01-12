@@ -1534,7 +1534,7 @@ var authenticate = function(token, onSuccess, onError) {
         headers: {
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify(token)
+        body: JSON.stringify({ token })
     })
     .then(
         () => {
