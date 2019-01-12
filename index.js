@@ -728,17 +728,17 @@ var incrementTurnIndex = function(game, isBeforeDeal = false) {
         game.players[game.currentTurnIndex].numberOfChips <= 0 || !(isBeforeDeal || game.players[game.currentTurnIndex].card1)
     );
 }
-var decrementTurnIndex = function(game) {
-    do {
-        game.currentTurnIndex--;
-        if (game.currentTurnIndex < 0) {
-            game.currentTurnIndex = game.players.length - 1;
-        }
-        logMessage('trace', 'decrementing ' + game.currentTurnIndex + ', ' + game.players[game.currentTurnIndex].numberOfChips + ', ' + game.players[game.currentTurnIndex].card1)
-    } while (
-        game.players[game.currentTurnIndex].numberOfChips <= 0 || !game.players[game.currentTurnIndex].card1
-    );
-}
+// var decrementTurnIndex = function(game) {
+//     do {
+//         game.currentTurnIndex--;
+//         if (game.currentTurnIndex < 0) {
+//             game.currentTurnIndex = game.players.length - 1;
+//         }
+//         logMessage('trace', 'decrementing ' + game.currentTurnIndex + ', ' + game.players[game.currentTurnIndex].numberOfChips + ', ' + game.players[game.currentTurnIndex].card1)
+//     } while (
+//         game.players[game.currentTurnIndex].numberOfChips <= 0 || !game.players[game.currentTurnIndex].card1
+//     );
+// }
 
 var getOnlyPlayerIn = function(players) {
     var playersIn = players.filter(player => {
@@ -1469,10 +1469,10 @@ var addChips = function(messageData) {
 var handleUserAction = function(messageData) {
     getGameById(messageData.gameId, function(game) {
         try {
-            if (game.lastTurnIndex !== game.currentTurnIndex) {
-                logMessage('warn', 'turn index was incremented as if by dark magic, so it\'s being decremented now');
-                decrementTurnIndex(game);
-            }
+            // if (game.lastTurnIndex !== game.currentTurnIndex) {
+            //     logMessage('warn', 'turn index was incremented as if by dark magic, so it\'s being decremented now');
+            //     decrementTurnIndex(game);
+            // }
             logMessage('trace', 'action received from user ' + game.players[game.currentTurnIndex].name)
             if (messageData.playerName === game.players[game.currentTurnIndex].name) {
                 logMessage('trace', 'indigenous')
