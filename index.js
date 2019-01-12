@@ -747,6 +747,7 @@ var getOnlyPlayerIn = function(players) {
 }
 
 var startNextTurn = function(game) {
+    game.lastTurnIndex = game.currentTurnIndex;
     saveGame(game, function() {
         if (!game.players[game.currentTurnIndex].isHuman) { // todo: do I really want AI in prod? maybe at first
             logMessage('trace', 'beginning AI turn')
@@ -1467,7 +1468,10 @@ var addChips = function(messageData) {
 var handleUserAction = function(messageData) {
     getGameById(messageData.gameId, function(game) {
         try {
-            decrementTurnIndex(game);
+            if (game.lastTurnIndex !== game.currentTurnIndex) {
+                logMessage('warn', 'turn index was incremented as if by dark magic, so it\'s being decremented now');
+                decrementTurnIndex(game);
+            }
             logMessage('trace', 'action received from user ' + game.players[game.currentTurnIndex].name)
             if (messageData.playerName === game.players[game.currentTurnIndex].name) {
                 logMessage('trace', 'indigenous')
