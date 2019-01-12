@@ -749,15 +749,14 @@ var getOnlyPlayerIn = function(players) {
 
 var startNextTurn = function(game) {
     game.lastTurnIndex = game.currentTurnIndex;
-    saveGame(game, function() {
-        if (!game.players[game.currentTurnIndex].isHuman) { // todo: do I really want AI in prod? maybe at first
-            logMessage('trace', 'beginning AI turn')
-            beginAiTurn(game);
-        }
-        else {
-            logMessage('trace', 'waiting for human player ' + game.players[game.currentTurnIndex].name)
-        }
-    });
+
+    if (!game.players[game.currentTurnIndex].isHuman) { // todo: do I really want AI in prod? maybe at first
+        logMessage('trace', 'beginning AI turn')
+        beginAiTurn(game);
+    }
+    else {
+        logMessage('trace', 'waiting for human player ' + game.players[game.currentTurnIndex].name)
+    }
 }
 
 var getActivePlayersCount = function(players) {
@@ -856,10 +855,8 @@ var endTurn = function(game, actionMessage) {
                         game.cardsOnTable = [];
                         game.roundNumber = 1;
 
-                        saveGame(game, function() {
-                            beginDeal(game, function() {
-                                startNextTurn(game);
-                            });
+                        beginDeal(game, function() {
+                            startNextTurn(game);
                         });
                     } catch (error) {
                         console.log("ERROR while starting new hand. " + error.name + ", " + error.message + ", " + error.stack);
@@ -880,18 +877,14 @@ var endTurn = function(game, actionMessage) {
                             sendMessageToClients(game.id, { message, game, action: 'flop' })
                             setTimeout(() => {
                                 logMessage('trace', 'beginning round after flop');
-                                saveGame(game, function() {
-                                    beginRound(game);
-                                });
+                                beginRound(game);
                             }, 1500); // allow for front-end animation AND bot players
                         }
                     }
                 }
                 else { // turn, river
                     game.cardsOnTable.push(drawCardFromDeck(game));
-                    saveGame(game, function() {
-                        beginRound(game, message);
-                    });
+                    beginRound(game, message);
                 }
             }
         }
@@ -1420,7 +1413,7 @@ var joinGame = function(messageData, connection) {
                         };
                         game.players.push(player);
                         
-                        saveGame(game, function() {
+                        addPlayer(game.id, function() {
                             if (!game.isStarted) {
                                 game.isStarted = true;
                                 beginGame(game);
@@ -1559,14 +1552,27 @@ var getGameById = function(id, onSuccess, onError) {
             }
         })
 }
-var saveGame = function(game, onSuccess) {
-    fetch(API_BASE_URL + 'game/' + game.id, {
+
+var addPlayer = function(gameId, onSuccess) {
+    fetch(API_BASE_URL + 'game/' + gameId + '/addPlayer', {
         method: 'put',
         headers: {
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify(game)
-    }) 
+        body: JSON.stringify({ isUpdate: true })
+    })
+    .then(() => {
+        onSuccess();
+    });
+}
+var removePlayer = function(gameId, onSuccess) {
+    fetch(API_BASE_URL + 'game/' + gameId + '/removePlayer', {
+        method: 'put',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ isUpdate: true })
+    })
     .then(() => {
         onSuccess();
     });
