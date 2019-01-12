@@ -728,6 +728,16 @@ var incrementTurnIndex = function(game, isBeforeDeal = false) {
         game.players[game.currentTurnIndex].numberOfChips <= 0 || !(isBeforeDeal || game.players[game.currentTurnIndex].card1)
     );
 }
+var decrementTurnIndex = function(game) {
+    do {
+        game.currentTurnIndex--;
+        if (game.currentTurnIndex < 0) {
+            game.currentTurnIndex = game.players.length - 1;
+        }
+    } while (
+        game.players[game.currentTurnIndex].numberOfChips <= 0 || !game.players[game.currentTurnIndex].card1
+    );
+}
 
 var getOnlyPlayerIn = function(players) {
     var playersIn = players.filter(player => {
@@ -1457,6 +1467,7 @@ var addChips = function(messageData) {
 var handleUserAction = function(messageData) {
     getGameById(messageData.gameId, function(game) {
         try {
+            decrementTurnIndex(game);
             logMessage('trace', 'action received from user ' + game.players[game.currentTurnIndex].name)
             if (messageData.playerName === game.players[game.currentTurnIndex].name) {
                 logMessage('trace', 'indigenous')
