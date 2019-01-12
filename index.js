@@ -734,6 +734,7 @@ var decrementTurnIndex = function(game) {
         if (game.currentTurnIndex < 0) {
             game.currentTurnIndex = game.players.length - 1;
         }
+        logMessage('trace', 'decrementing ' + game.currentTurnIndex + ', ' + game.players[game.currentTurnIndex].numberOfChips + ', ' + game.players[game.currentTurnIndex].card1)
     } while (
         game.players[game.currentTurnIndex].numberOfChips <= 0 || !game.players[game.currentTurnIndex].card1
     );
