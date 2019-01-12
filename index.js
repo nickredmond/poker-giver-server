@@ -7,13 +7,25 @@ var connections = [];
 var addConnection = function(connection) {
     connections.push(connection);
 }
-var addClientToGame = function(gameId, clientConnection) {
-    if (connectionsByGameId[gameId]) {
-        connectionsByGameId[gameId].push(clientConnection);
+
+var playerTokensByClientId = {};
+var clientIdsByPlayerName = {};
+var addClientToGame = function(messageData, clientConnection) {
+    playerTokensByClientId[clientConnection.clientId] = messageData.token;
+    clientIdsByPlayerName[messageData.playerName] = clientConnection.clientId;
+
+    if (connectionsByGameId[messageData.gameId]) {
+        connectionsByGameId[messageData.gameId].push(clientConnection);
     }
     else {
-        connectionsByGameId[gameId] = [clientConnection];
+        connectionsByGameId[messageData.gameId] = [clientConnection];
     }
+}
+var getClientId = function(playerName) {
+    return clientIdsByPlayerName[playerName];
+}
+var getPlayerToken = function(clientId) {
+    return playerTokensByClientId[clientId];
 }
 
 var minLogLevel = 'trace';
@@ -201,44 +213,72 @@ var beginDeal = function(game, onDealComplete) {
 
         var activePlayersCount = getActivePlayersCount(game.players);
         if (activePlayersCount < 2) {
-            // todo: impelement end-game for this scenario
-            console.log("game over " + game.id);
+            var winningPlayer = game.players.find(player => !player.isOut);
+            logMessage('info', 'game over: game ID ' + game.id + ', winning player is ' + winningPlayer.name);
+            endGame(game, winningPlayer);
         }
-        incrementBlinds(game);
-        game.currentBet = game.bigBlindAmount;
-        game.currentPotAmount = game.bigBlindAmount + game.littleBlindAmount;
-        deductBlindsFromPlayers(game);
-
-        game.currentDeck = shuffleCards();
-        game.currentCardIndex = 0;
-
-        game.currentTurnIndex = game.bigBlindIndex;
-        var isBeforeDeal = true;
-        incrementTurnIndex(game, isBeforeDeal);
-
-        for (var i = game.currentTurnIndex; i < game.currentTurnIndex + game.players.length; i++) {
-            var currentIndex = i >= game.players.length ? i - game.players.length : i;
-            var player = game.players[currentIndex];
-            player.card1 = null;
-            player.card2 = null;
-
-            if (!player.isOut) {
-                player.card1 = drawCardFromDeck(game);
-                player.card2 = drawCardFromDeck(game);;
-            }
+        else {
+            dealCards(game, onDealComplete);
         }
-
-        sendMessageToClients(game.id, { game, activePlayersCount, action: 'deal' });
-
-        var cardDealInterval = 200;
-        var roundOfCardsTime = (activePlayersCount - 1) * cardDealInterval;
-        setTimeout(() => {
-            onDealComplete();
-        }, roundOfCardsTime * 2);
     } catch (error) {
         // todo: handle this more gracefully...
         console.log("error: [ name:" + error.name + ", message:" + error.message + ", stack: " + error.stack + " ]");
     }
+}
+
+var endGame = function(game, winningPlayer) {
+    var clientConnections = connectionsByGameId[game.id];
+    if (clientConnections) {
+        var winningClientId = getClientId(winningPlayer.name);
+        clientConnections.forEach(connection => {
+            var isWinner = connection.clientId === winningClientId;
+            var numberOfChips = isWinner ? winningPlayer.numberOfChips : 0;
+            var payload = {
+                action: 'gameOver',
+                numberOfChips,
+                isWinner
+            };
+            connection.send(JSON.stringify(payload));
+        });
+
+        // todo: send chips won to API
+        // remove game from memory and delete through API
+        // set timeout to close WS connection (5 secs? to prevent client from assuming error)
+    }
+}
+
+var dealCards = function(game, onDealComplete) {
+    incrementBlinds(game);
+    game.currentBet = game.bigBlindAmount;
+    game.currentPotAmount = game.bigBlindAmount + game.littleBlindAmount;
+    deductBlindsFromPlayers(game);
+
+    game.currentDeck = shuffleCards();
+    game.currentCardIndex = 0;
+
+    game.currentTurnIndex = game.bigBlindIndex;
+    var isBeforeDeal = true;
+    incrementTurnIndex(game, isBeforeDeal);
+
+    for (var i = game.currentTurnIndex; i < game.currentTurnIndex + game.players.length; i++) {
+        var currentIndex = i >= game.players.length ? i - game.players.length : i;
+        var player = game.players[currentIndex];
+        player.card1 = null;
+        player.card2 = null;
+
+        if (!player.isOut) {
+            player.card1 = drawCardFromDeck(game);
+            player.card2 = drawCardFromDeck(game);;
+        }
+    }
+
+    sendMessageToClients(game.id, { game, activePlayersCount, action: 'deal' });
+
+    var cardDealInterval = 200;
+    var roundOfCardsTime = (activePlayersCount - 1) * cardDealInterval;
+    setTimeout(() => {
+        onDealComplete();
+    }, roundOfCardsTime * 2);
 }
 
 // returns hand containing rank (royal flush for this method) or null if no hand
@@ -1380,6 +1420,7 @@ var groupBy = function(items, propertyName) {
 var WebSocketServer = require("ws").Server
 var http = require("http")
 var express = require("express")
+var uuid = require('uuid/v1');
 var app = express()
 var port = process.env.PORT || 5000
 
@@ -1401,7 +1442,7 @@ var joinGame = function(messageData, connection) {
                     // todo: add blocking to prevent simultaneous requests from breaking table
                     // like perhaps a queue of join requests per table? getGame > addPlayer > save > next
                     if (!game.isFull) {
-                        addClientToGame(messageData.gameId, connection);
+                        addClientToGame(messageData, connection);
 
                         var player = {
                             name: messageData.playerName,
@@ -1480,17 +1521,18 @@ var handleUserAction = function(messageData) {
             }
         } catch (error) {
             // todo: better error-handling
-            console.log("ERROR handling user action " + error.name + ": " + error.message + ", " + error.stack);
+            logMessage('error', 'handling user action ' + error.name + ': ' + error.message + ', ' + error.stack);
         }
     });
 }
 
 wss.on('connection', function(ws) {
-    console.log("made connection")
+    ws.clientId = uuid();
+    logMessage('info', 'made connection: client ID is set to ' + ws.clientId);
     addConnection(ws);
 
     ws.on('message', function(message) {
-        console.log('Received Message: ' + message);
+        logMessage('trace', 'Received Message: ' + message + ', clientId: ' + ws.clientId);
 
         const messageData = JSON.parse(message);
         switch (messageData.action) {
@@ -1508,7 +1550,7 @@ wss.on('connection', function(ws) {
             case 'ping':
                 break;
             default:
-                console.log("WARN: unknown request action '" + messageData.action + "' received, so nothing will be done.");
+                logMessage('warn', 'Unknown request action "' + messageData.action + '" received, so nothing will be done. clientId: ' + ws.clientId);
                 break;
         }
     });
