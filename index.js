@@ -1412,6 +1412,7 @@ var joinGame = function(messageData, connection) {
                             isOut: true
                         };
                         game.players.push(player);
+                        game.isFull = game.players.length >= game.numberOfPlayers;
                         
                         addPlayer(game.id, function() {
                             if (!game.isStarted) {
@@ -1539,18 +1540,25 @@ var authenticate = function(token, onSuccess, onError) {
     )
 }
 
+var gamesById = {};
 var getGameById = function(id, onSuccess, onError) {
-    fetch(API_BASE_URL + 'game/' + id)
-        .then(response => response.json())
-        .then(game => {
-            if (game) {
-                onSuccess(game);
-            }
-            else {
-                logMessage('warn', 'Could not find game with id ' + id);
-                onError({ error: 'Game not found.' });
-            }
-        })
+    if (gamesById[id]) {
+        onSuccess(gamesById[id]);
+    }
+    else {
+        fetch(API_BASE_URL + 'game/' + id)
+            .then(response => response.json())
+            .then(game => {
+                if (game) {
+                    gamesById[id] = game;
+                    onSuccess(game);
+                }
+                else {
+                    logMessage('warn', 'Could not find game with id ' + id);
+                    onError({ error: 'Game not found.' });
+                }
+            });
+    }
 }
 
 var addPlayer = function(gameId, onSuccess) {
