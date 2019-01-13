@@ -24,7 +24,11 @@ var addClientToGame = function(messageData, clientConnection) {
 var getClientId = function(playerName) {
     return clientIdsByPlayerName[playerName];
 }
-var getPlayerToken = function(clientId) {
+var getPlayerTokenByClientId = function(clientId) {
+    return playerTokensByClientId[clientId];
+}
+var getPlayerTokenByPlayerName = function(playerName) {
+    var clientId = clientIdsByPlayerName[playerName];
     return playerTokensByClientId[clientId];
 }
 
@@ -230,6 +234,28 @@ var endGame = function(game, winningPlayer) {
     var clientConnections = connectionsByGameId[game.id];
     if (clientConnections) {
         var winningClientId = getClientId(winningPlayer.name);
+
+        game.players.forEach(player => {
+            if (player.isHuman && player.numberOfChips > 0) {
+                var token = getPlayerTokenByPlayerName(player.name);
+                fetch(API_BASE_URL + 'player/addChips', {
+                        method: 'put',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ token, numberOfChips: player.numberOfChips })
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            // todo: better error handling
+                            logMessage('error', 'Error saving chips for player ' + player.name + ', status: ' + response.status);
+                        }
+                    });
+                delete clientIdsByPlayerName[player.name];
+            }
+        });
+
+        
         clientConnections.forEach(connection => {
             var isWinner = connection.clientId === winningClientId;
             var numberOfChips = isWinner ? winningPlayer.numberOfChips : 0;
@@ -241,9 +267,15 @@ var endGame = function(game, winningPlayer) {
             connection.send(JSON.stringify(payload));
         });
 
-        // todo: send chips won to API
-        // remove game from memory and delete through API
-        // set timeout to close WS connection (5 secs? to prevent client from assuming error)
+        delete gamesById[game.id];
+        delete connectionsByGameId[game.id];
+
+        setTimeout((connections) => {
+            connections.forEach(connection => {
+                delete playerTokensByClientId[connection.clientId];
+                connection.terminate();
+            })
+        }, 5000, clientConnections);
     }
 }
 
@@ -1435,7 +1467,7 @@ var wss = new WebSocketServer({server: server})
 console.log("websocket server created")
 
 var joinGame = function(messageData, connection) {
-    authenticate(messageData.token, 
+    authenticate(messageData.token, connection.clientId,
         () => {
             getGameById(messageData.gameId, function(game) {
                 if (game) {
@@ -1477,7 +1509,7 @@ var joinGame = function(messageData, connection) {
 }
 
 var startGame = function(messageData, connection) {
-    authenticate(messageData.token, 
+    authenticate(messageData.token, conneciton.clientId,
         () => {
             getGameById(messageData.gameId, function(game) {
                 if (game) {
@@ -1564,7 +1596,7 @@ wss.on('connection', function(ws) {
 
 // todo: lock down all actions; authenticate before switch on action type
 // also, maybe store validTokens list in memory so only need to POST /authenticate once?
-var authenticate = function(token, onSuccess, onError) {
+var authenticate = function(token, clientId, onSuccess, onError) {
     fetch(API_BASE_URL + 'authenticate', {
         method: 'post',
         headers: {
@@ -1573,11 +1605,23 @@ var authenticate = function(token, onSuccess, onError) {
         body: JSON.stringify({ token })
     })
     .then(
-        () => {
-            onSuccess();
-        },
-        error => {
-            onError(error);
+        // () => {
+        //     onSuccess();
+        // },
+        // error => {
+        //     onError(error);
+        // }
+        response => {
+            if (response.ok) {
+                response.json().then(responseBody => {
+                    playerTokensByClientId[clientId] = responseBody.refreshedToken;
+                    onSuccess();
+                });
+            }
+            else {
+                logMessage('error', 'Error authenticating user. status: ' + response.status);
+                onError('error authenticating user');
+            }
         }
     )
 }
