@@ -871,11 +871,15 @@ var beginRound = function(game, messageToClients) {
 
 var isAllPlayersPlayed = function(players) {
     var isAllPlayed = true;
+    var numberOfPlayersIn = 0;
     for (var i = 0; i < players.length && isAllPlayed; i++) {
         isAllPlayed = isAllPlayed && (players[i].isPlayed || players[i].isOut);
+        if (!players[i].isOut) {
+            numberOfPlayersIn++;
+        }
     }
 
-    return isAllPlayed;
+    return (numberOfPlayersIn < 2) || isAllPlayed;
 }
 
 var NUMBER_OF_ROUNDS = 4; // pre-flop, flop, turn, river
