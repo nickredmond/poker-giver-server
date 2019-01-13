@@ -815,7 +815,6 @@ var incrementTurnIndex = function(game, isBeforeDeal = false) {
 
 var getOnlyPlayerIn = function(players) {
     var playersIn = players.filter(player => {
-        console.log("FUCK --- " + JSON.stringify(player.card1))
         return player.card1 !== null && player.card1 !== undefined;
     });
     return playersIn.length === 1 ? playersIn[0] : null;
@@ -883,94 +882,132 @@ var isAllPlayersPlayed = function(players) {
     return (numberOfPlayersIn < 2) || isAllPlayed;
 }
 
+var justDealSomeCardsAndEndTheGameBecauseEverybodyElseFoldedOrWentAllIn = function(game) {
+    var numberOfPeepsStillGoingStrong = 0;
+
+    game.players.forEach(player => {
+        if (player.card1 && player.numberOfChips > 0) {
+            numberOfPeepsStillGoingStrong++;
+        }
+    });
+
+    return numberOfPeepsStillGoingStrong < 2;
+}
+var justEndItAll = function(game) {
+    while (game.cardsOnTable.length < 5) {
+        game.cardsOnTable.push(drawCardFromDeck());
+    }
+
+    var winningResult = determineWinningAmountsByPlayerIndex(game);
+    winningResult.playerRewards.forEach(reward => {
+        var player = game.players[reward.playerIndex];
+        player.numberOfChips += reward.winningAmount;
+        player.isShowingHand = true;
+        winningPlayers.push(game.players[reward.playerIndex]);
+    });
+    var message = winningResult.message;
+
+    endHand(game, message);
+}
+
+var endHand = function(game, message) {
+    game.players.forEach(player => {
+        if (player.numberOfChips <= 0) {
+            //setMessageText('Player ' + player.name + ' has run out of chips.');
+            // todo: boot player, or let player add chips until their turn? 
+            // also fix timing of this message
+        }
+    });
+
+    game.players.forEach(player => {
+        if (addChipsRequestsByPlayerName[player.name]) {
+            player.numberOfChips += addChipsRequestsByPlayerName[player.name];
+            delete addChipsRequestsByPlayerName[player.name];
+        }
+    });
+    
+    // todo: maybe make animation of pot being rewarded or some shit
+    sendMessageToClients(game.id, { message, game })
+    setTimeout(() => {
+        try {
+            game.cardsOnTable = [];
+            game.roundNumber = 1;
+
+            beginDeal(game, function() {
+                startNextTurn(game);
+            });
+        } catch (error) {
+            console.log("ERROR while starting new hand. " + error.name + ", " + error.message + ", " + error.stack);
+        }
+    }, 5000);
+}
+
 var NUMBER_OF_ROUNDS = 4; // pre-flop, flop, turn, river
 var endTurn = function(game, actionMessage) {
     try {
-        var message = actionMessage;
-
-        var onlyPlayerIn = getOnlyPlayerIn(game.players);
-        var isRoundComplete = onlyPlayerIn || isAllPlayersPlayed(game.players); 
-        logMessage('trace', 'is round complete: ' + isRoundComplete);
-
-        if (isRoundComplete) {
-            if (onlyPlayerIn || game.cardsOnTable.length === 5) {
-                var winningPlayers = [];
-
-                if (onlyPlayerIn) {
-                    onlyPlayerIn.numberOfChips += game.currentPotAmount;
-                    message = onlyPlayerIn.name + ' wins. All other players folded.';
-                }
-                else {
-                    var winningResult = determineWinningAmountsByPlayerIndex(game);
-                    winningResult.playerRewards.forEach(reward => {
-                        var player = game.players[reward.playerIndex];
-                        player.numberOfChips += reward.winningAmount;
-                        player.isShowingHand = true;
-                        winningPlayers.push(game.players[reward.playerIndex]);
-                    });
-                    message = winningResult.message;
-                }
-
-                game.players.forEach(player => {
-                    if (player.numberOfChips <= 0) {
-                        //setMessageText('Player ' + player.name + ' has run out of chips.');
-                        // todo: boot player, or let player add chips until their turn? 
-                        // also fix timing of this message
-                    }
-                });
-
-                game.players.forEach(player => {
-                    if (addChipsRequestsByPlayerName[player.name]) {
-                        player.numberOfChips += addChipsRequestsByPlayerName[player.name];
-                        delete addChipsRequestsByPlayerName[player.name];
-                    }
-                });
-                
-                // todo: maybe make animation of pot being rewarded or some shit
-                sendMessageToClients(game.id, { message, game })
-                setTimeout(() => {
-                    try {
-                        game.cardsOnTable = [];
-                        game.roundNumber = 1;
-
-                        beginDeal(game, function() {
-                            startNextTurn(game);
-                        });
-                    } catch (error) {
-                        console.log("ERROR while starting new hand. " + error.name + ", " + error.message + ", " + error.stack);
-                    }
-                }, 5000);
-            }
-            else {
-                game.roundNumber++;
-                drawCardFromDeck(game); // burn card
-
-                logMessage('trace', 'incrementing rounding number to ' + game.roundNumber);
-                if (game.roundNumber === 2) { // flop
-                    logMessage('trace', 'dealing flop');
-
-                    for (var i = 0; i < 3; i++) {
-                        game.cardsOnTable.push(drawCardFromDeck(game));
-                        if (i === 2) {
-                            sendMessageToClients(game.id, { message, game, action: 'flop' })
-                            setTimeout(() => {
-                                logMessage('trace', 'beginning round after flop');
-                                beginRound(game);
-                            }, 1500); // allow for front-end animation AND bot players
-                        }
-                    }
-                }
-                else { // turn, river
-                    game.cardsOnTable.push(drawCardFromDeck(game));
-                    beginRound(game, message);
-                }
-            }
+        if (justDealSomeCardsAndEndTheGameBecauseEverybodyElseFoldedOrWentAllIn(game)) {
+            logMessage('trace', 'all players but one have folded or gone all-in')
+            justEndItAll(game);
         }
         else {
-            logMessage('trace', 'starting next turn')
-            incrementTurnIndex(game);
-            sendMessageToClients(game.id, { message, game });
-            startNextTurn(game);
+            var message = actionMessage;
+
+            var onlyPlayerIn = getOnlyPlayerIn(game.players);
+            var isRoundComplete = onlyPlayerIn || isAllPlayersPlayed(game.players); 
+            logMessage('trace', 'is round complete: ' + isRoundComplete);
+
+            if (isRoundComplete) {
+                if (onlyPlayerIn || game.cardsOnTable.length === 5) {
+                    var winningPlayers = [];
+
+                    if (onlyPlayerIn) {
+                        onlyPlayerIn.numberOfChips += game.currentPotAmount;
+                        message = onlyPlayerIn.name + ' wins. All other players folded.';
+                    }
+                    else {
+                        var winningResult = determineWinningAmountsByPlayerIndex(game);
+                        winningResult.playerRewards.forEach(reward => {
+                            var player = game.players[reward.playerIndex];
+                            player.numberOfChips += reward.winningAmount;
+                            player.isShowingHand = true;
+                            winningPlayers.push(game.players[reward.playerIndex]);
+                        });
+                        message = winningResult.message;
+                    }
+
+                    endHand(game, message);
+                }
+                else {
+                    game.roundNumber++;
+                    drawCardFromDeck(game); // burn card
+
+                    logMessage('trace', 'incrementing rounding number to ' + game.roundNumber);
+                    if (game.roundNumber === 2) { // flop
+                        logMessage('trace', 'dealing flop');
+
+                        for (var i = 0; i < 3; i++) {
+                            game.cardsOnTable.push(drawCardFromDeck(game));
+                            if (i === 2) {
+                                sendMessageToClients(game.id, { message, game, action: 'flop' })
+                                setTimeout(() => {
+                                    logMessage('trace', 'beginning round after flop');
+                                    beginRound(game);
+                                }, 1500); // allow for front-end animation AND bot players
+                            }
+                        }
+                    }
+                    else { // turn, river
+                        game.cardsOnTable.push(drawCardFromDeck(game));
+                        beginRound(game, message);
+                    }
+                }
+            }
+            else {
+                logMessage('trace', 'starting next turn')
+                incrementTurnIndex(game);
+                sendMessageToClients(game.id, { message, game });
+                startNextTurn(game);
+            }
         }
     } catch (error) {
         // todo: refund chips and deal new hand?
