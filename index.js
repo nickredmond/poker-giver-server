@@ -884,14 +884,18 @@ var isAllPlayersPlayed = function(players) {
 
 var justDealSomeCardsAndEndTheGameBecauseEverybodyElseFoldedOrWentAllIn = function(game) {
     var numberOfPeepsStillGoingStrong = 0;
+    var numberOfPeepsWithCards = 0;
 
     game.players.forEach(player => {
-        if (player.card1 && player.numberOfChips > 0) {
-            numberOfPeepsStillGoingStrong++;
+        if (player.card1) {
+            numberOfPeepsWithCards++;
+            if (player.numberOfChips > 0) {
+                numberOfPeepsStillGoingStrong++;
+            }
         }
     });
 
-    return numberOfPeepsStillGoingStrong < 2;
+    return numberOfPeepsWithCards > 1 && numberOfPeepsStillGoingStrong < 2;
 }
 var justEndItAll = function(game) {
     // todo: maybe send flag to users so it deals to end without showing winners
