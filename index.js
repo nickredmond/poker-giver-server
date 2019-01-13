@@ -815,6 +815,7 @@ var incrementTurnIndex = function(game, isBeforeDeal = false) {
 
 var getOnlyPlayerIn = function(players) {
     var playersIn = players.filter(player => {
+        console.log("FUCK --- " + JSON.stringify(player.card1))
         return player.card1 !== null && player.card1 !== undefined;
     });
     return playersIn.length === 1 ? playersIn[0] : null;
