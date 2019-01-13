@@ -904,7 +904,6 @@ var justEndItAll = function(game) {
         var player = game.players[reward.playerIndex];
         player.numberOfChips += reward.winningAmount;
         player.isShowingHand = true;
-        winningPlayers.push(game.players[reward.playerIndex]);
     });
     var message = winningResult.message;
 
@@ -959,8 +958,6 @@ var endTurn = function(game, actionMessage) {
 
             if (isRoundComplete) {
                 if (onlyPlayerIn || game.cardsOnTable.length === 5) {
-                    var winningPlayers = [];
-
                     if (onlyPlayerIn) {
                         onlyPlayerIn.numberOfChips += game.currentPotAmount;
                         message = onlyPlayerIn.name + ' wins. All other players folded.';
@@ -971,7 +968,6 @@ var endTurn = function(game, actionMessage) {
                             var player = game.players[reward.playerIndex];
                             player.numberOfChips += reward.winningAmount;
                             player.isShowingHand = true;
-                            winningPlayers.push(game.players[reward.playerIndex]);
                         });
                         message = winningResult.message;
                     }
