@@ -873,14 +873,10 @@ var beginRound = function(game, messageToClients) {
 var isAllPlayersPlayed = function(players) {
     var isAllPlayed = true;
     var numberOfPlayersIn = 0;
-    for (var i = 0; i < players.length && isAllPlayed; i++) {
+    for (var i = 0; i < players.length; i++) {
         isAllPlayed = isAllPlayed && (players[i].isPlayed || players[i].isOut);
         if (!players[i].isOut) {
-            console.log('a player is in ' + players[i].name)
             numberOfPlayersIn++;
-        }
-        else {
-            console.log('this player is out? ' + players[i].name)
         }
     }
 
@@ -892,7 +888,6 @@ var endTurn = function(game, actionMessage) {
     try {
         var message = actionMessage;
 
-        console.log("HOW MANY PLAYERS????????? " + JSON.stringify(game.players))
         var onlyPlayerIn = getOnlyPlayerIn(game.players);
         var isRoundComplete = onlyPlayerIn || isAllPlayersPlayed(game.players); 
         logMessage('trace', 'is round complete: ' + isRoundComplete);
