@@ -894,8 +894,9 @@ var justDealSomeCardsAndEndTheGameBecauseEverybodyElseFoldedOrWentAllIn = functi
     return numberOfPeepsStillGoingStrong < 2;
 }
 var justEndItAll = function(game) {
+    // todo: maybe send flag to users so it deals to end without showing winners
     while (game.cardsOnTable.length < 5) {
-        game.cardsOnTable.push(drawCardFromDeck());
+        game.cardsOnTable.push(drawCardFromDeck(game));
     }
 
     var winningResult = determineWinningAmountsByPlayerIndex(game);
