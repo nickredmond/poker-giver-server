@@ -892,6 +892,7 @@ var endTurn = function(game, actionMessage) {
     try {
         var message = actionMessage;
 
+        console.log("HOW MANY PLAYERS????????? " + JSON.stringify(game.players))
         var onlyPlayerIn = getOnlyPlayerIn(game.players);
         var isRoundComplete = onlyPlayerIn || isAllPlayersPlayed(game.players); 
         logMessage('trace', 'is round complete: ' + isRoundComplete);
