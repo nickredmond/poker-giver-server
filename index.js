@@ -875,7 +875,11 @@ var isAllPlayersPlayed = function(players) {
     for (var i = 0; i < players.length && isAllPlayed; i++) {
         isAllPlayed = isAllPlayed && (players[i].isPlayed || players[i].isOut);
         if (!players[i].isOut) {
+            console.log('a player is in ' + players[i].name)
             numberOfPlayersIn++;
+        }
+        else {
+            console.log('this player is out? ' + players[i].name)
         }
     }
 
