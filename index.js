@@ -731,7 +731,7 @@ var onNextUserAction = function(game, actionType, actionValue) {
                 else {
                     activePlayer.numberOfChips -= amountToCall;
                 }
-                game.currentPotAmount += amountToCall;
+                game.currentPotAmount += actionDisplayAmount;
                 activePlayer.currentBet = game.currentBet;
                 break;
             case 'bet': 
@@ -746,9 +746,9 @@ var onNextUserAction = function(game, actionType, actionValue) {
                 else {
                     activePlayer.numberOfChips -= actionAmount;
                 }
-                game.currentPotAmount += actionAmount;
-                activePlayer.currentBet = actionAmount;
-                game.currentBet = actionAmount;
+                game.currentPotAmount += actionDisplayAmount;
+                activePlayer.currentBet = actionDisplayAmount;
+                game.currentBet = actionDisplayAmount;
                 break;
             case 'raise': 
                 setIsPlayedFalseExceptCurrentPlayer(game);
@@ -757,14 +757,15 @@ var onNextUserAction = function(game, actionType, actionValue) {
                 if (totalBet >= activePlayer.numberOfChips) {
                     isAllIn = true;
                     activePlayer.isOut = true;
-                    actionDisplayAmount = activePlayer.numberOfChips;
+                    actionDisplayAmount = totalBet = activePlayer.numberOfChips;
                     activePlayer.numberOfChips = 0;
                 }
                 else {
                     activePlayer.numberOfChips -= totalBet;
                 }
                 game.currentPotAmount += totalBet;
-                game.currentBet += actionAmount;
+                var chipsDifference = activePlayer.numberOfChips - (game.currentBet - activePlayer.currentBet);
+                game.currentBet += isAllIn ? Math.max(0, chipsDifference) : actionAmount;
                 activePlayer.currentBet = game.currentBet;
                 break;
             case 'fold':
