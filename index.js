@@ -218,7 +218,7 @@ var beginDeal = function(game, onDealComplete) {
             endGame(game, winningPlayer);
         }
         else {
-            dealCards(game, onDealComplete);
+            dealCards(game, activePlayersCount, onDealComplete);
         }
     } catch (error) {
         // todo: handle this more gracefully...
@@ -247,7 +247,7 @@ var endGame = function(game, winningPlayer) {
     }
 }
 
-var dealCards = function(game, onDealComplete) {
+var dealCards = function(game, activePlayersCount, onDealComplete) {
     incrementBlinds(game);
     game.currentBet = game.bigBlindAmount;
     game.currentPotAmount = game.bigBlindAmount + game.littleBlindAmount;
