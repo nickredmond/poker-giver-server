@@ -10,9 +10,13 @@ var addConnection = function(connection) {
 
 var playerTokensByClientId = {};
 var clientIdsByPlayerName = {};
+var gameIdsByClientId = {};
+var playerNamesByClientId = {};
 var addClientToGame = function(messageData, clientConnection) {
     playerTokensByClientId[clientConnection.clientId] = messageData.token;
     clientIdsByPlayerName[messageData.playerName] = clientConnection.clientId;
+    playerNamesByClientId[clientConnection.clientId] = messageData.playerName;
+    gameIdsByClientId[clientConnection.clientId] = messageData.gameId;
 
     if (connectionsByGameId[messageData.gameId]) {
         connectionsByGameId[messageData.gameId].push(clientConnection);
@@ -233,36 +237,22 @@ var beginDeal = function(game, onDealComplete) {
 var endGame = function(game, winningPlayer) {
     var clientConnections = connectionsByGameId[game.id];
     if (clientConnections) {
-        var winningClientId = getClientId(winningPlayer.name);
-
         game.players.forEach(player => {
             if (player.isHuman && player.numberOfChips > 0) {
                 var token = getPlayerTokenByPlayerName(player.name);
-                fetch(API_BASE_URL + 'player/addChips', {
-                        method: 'put',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({ token, numberOfChips: player.numberOfChips })
-                    })
-                    .then(response => {
-                        if (!response.ok) {
-                            // todo: better error handling
-                            logMessage('error', 'Error saving chips for player ' + player.name + ', status: ' + response.status);
-                        }
-                    });
+                addTotalPlayerChips(player, token);
                 delete clientIdsByPlayerName[player.name];
             }
         });
 
+        deleteGame(game.id);
         
         clientConnections.forEach(connection => {
-            var isWinner = connection.clientId === winningClientId;
-            var numberOfChips = isWinner ? winningPlayer.numberOfChips : 0;
+            var numberOfChipsWon = winningPlayer.numberOfChips;
             var payload = {
                 action: 'gameOver',
-                numberOfChips,
-                isWinner
+                numberOfChipsWon,
+                winningPlayerName: winningPlayer.name
             };
             connection.send(JSON.stringify(payload));
         });
@@ -1630,11 +1620,37 @@ wss.on('connection', function(ws) {
                 break;
         }
     });
-    ws.on('close', function() {
-        // todo: remove connection from list; 
-        //      remove player from game;
-        //      if no players remain then reward chips and delete game, just like at end of round        
+    ws.on('close', function() {  
         console.log((new Date()) + ' Peer disconnected.');
+        const gameId = gameIdsByClientId[ws.clientId];
+        if (gamesById[gameId]) {
+            removePlayer(gameId);
+
+            getGameById(gameId, (game) => {
+                const playerName = playerNamesByClientId[ws.clientId];
+                const deletionIndex = -1;
+                for (var i = 0; i < game.players.length && deletionIndex < 0; i++) {
+                    if (playerName === game.players[i].name) {
+                        deletionIndex = i;
+                    }
+                }
+                if (deletionIndex >= 0) {
+                    const player = game.players[deleitionIndex];
+                    const token = getPlayerTokenByPlayerName(player.name);
+                    addTotalPlayerChips(player, token);
+
+                    game.players = game.players.splice(deletionIndex, 1);
+                }
+
+                const humanPlayers = game.players.filter(player => player.isHuman).length;
+                if (numberOfHumanPlayers < 2) {
+                    const winningPlayer = humanPlayers.length > 0 ? humanPlayers[0] : [];
+                    endGame(game, winningPlayer);
+                }
+
+                // todo: send disconnect message w/ playername, and display that in clients
+            });
+        }
     });
 });
 
@@ -1711,16 +1727,42 @@ var removePlayer = function(gameId, onSuccess) {
         },
         body: JSON.stringify({ isUpdate: true })
     })
-    .then(() => {
-        onSuccess();
+    .then(response => {
+        if (response.ok) {
+            onSuccess();
+        }
+        else {
+            logMessage('error', 'Problem removing player from game with ID ' + gameId);
+        }
     });
 }
 var deleteGame = function(gameId, onSuccess) {
     fetch(API_BASE_URL + 'game/' + gameId, {
         method: 'delete'
     })
-    .then(() => {
-        onSuccess();
+    .then(response => {
+        if (response.ok) {
+            onSuccess();
+        }
+        else {
+            logMessage('error', 'Problem deleting game with ID ' + gameId);
+        }
+    });
+}
+
+var addTotalPlayerChips = function(player, token) {
+    fetch(API_BASE_URL + 'player/addChips', {
+        method: 'put',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ token, numberOfChips: player.numberOfChips })
+    })
+    .then(response => {
+        if (!response.ok) {
+            // todo: better error handling
+            logMessage('error', 'Error saving chips for player ' + player.name + ', status: ' + response.status);
+        }
     });
 }
 
