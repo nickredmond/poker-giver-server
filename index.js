@@ -1628,7 +1628,7 @@ wss.on('connection', function(ws) {
 
             getGameById(gameId, (game) => {
                 const playerName = playerNamesByClientId[ws.clientId];
-                const deletionIndex = -1;
+                let deletionIndex = -1;
                 for (var i = 0; i < game.players.length && deletionIndex < 0; i++) {
                     if (playerName === game.players[i].name) {
                         deletionIndex = i;
@@ -1729,7 +1729,9 @@ var removePlayer = function(gameId, onSuccess) {
     })
     .then(response => {
         if (response.ok) {
-            onSuccess();
+            if (onSuccess) {
+                onSuccess();
+            }
         }
         else {
             logMessage('error', 'Problem removing player from game with ID ' + gameId);
@@ -1742,7 +1744,9 @@ var deleteGame = function(gameId, onSuccess) {
     })
     .then(response => {
         if (response.ok) {
-            onSuccess();
+            if (onSuccess) {
+                onSuccess();
+            }
         }
         else {
             logMessage('error', 'Problem deleting game with ID ' + gameId);
