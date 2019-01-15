@@ -1635,7 +1635,7 @@ wss.on('connection', function(ws) {
                     }
                 }
                 if (deletionIndex >= 0) {
-                    const player = game.players[deleitionIndex];
+                    const player = game.players[deletionIndex];
                     const token = getPlayerTokenByPlayerName(player.name);
                     addTotalPlayerChips(player, token);
 
