@@ -1522,6 +1522,11 @@ var joinGame = function(messageData, connection) {
                         game.isFull = game.players.length >= game.numberOfPlayers;
                         
                         addPlayer(game.id);
+                        connection.send({ 
+                            action: 'joinGame', 
+                            playerName: messageData.playerName,
+                            game
+                        });
                     }
                     else {
                         connection.send(JSON.stringify({ isTableFull: true, errorMessage: 'Table is full!' }));
