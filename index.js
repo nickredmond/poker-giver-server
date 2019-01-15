@@ -1521,12 +1521,7 @@ var joinGame = function(messageData, connection) {
                         game.players.push(player);
                         game.isFull = game.players.length >= game.numberOfPlayers;
                         
-                        addPlayer(game.id, function() {
-                            if (!game.isStarted) {
-                                game.isStarted = true;
-                                beginGame(game);
-                            }
-                        });
+                        addPlayer(game.id);
                     }
                     else {
                         connection.send(JSON.stringify({ isTableFull: true, errorMessage: 'Table is full!' }));
@@ -1543,22 +1538,27 @@ var joinGame = function(messageData, connection) {
 }
 
 var startGame = function(messageData, connection) {
-    authenticate(messageData.token, conneciton.clientId,
-        () => {
-            getGameById(messageData.gameId, function(game) {
-                if (game) {
-                    if (!game.isStarted) {
-                        game.isStarted = true;
-                        beginGame(game);
+    isAuthorizedToStartGame(messageData.token, messageData.gameId,
+        isAuthorized => {
+            if (isAuthorized) {
+                getGameById(messageData.gameId, function(game) {
+                    if (game) {
+                        if (!game.isStarted) {
+                            game.isStarted = true;
+                            beginGame(game);
+                        }
                     }
-                }
-                else {
-                    connection.send(JSON.stringify({ errorMessage: 'Error joining table.' }));
-                }
-            });
+                    else {
+                        connection.send(JSON.stringify({ errorMessage: 'Error starting game.' }));
+                    }
+                });
+            }
+            else {
+                connection.send(JSON.stringify({ errorMessage: 'Error starting game: not allowed.' }));
+            }
         },
         () => {
-            connection.send(JSON.stringify({ errorMessage: 'Error joining table: not allowed.' }));
+            connection.send(JSON.stringify({ errorMessage: 'Error starting game: not allowed.' }));
         }
     );
 }
@@ -1665,17 +1665,33 @@ var authenticate = function(token, clientId, onSuccess, onError) {
         body: JSON.stringify({ token })
     })
     .then(
-        // () => {
-        //     onSuccess();
-        // },
-        // error => {
-        //     onError(error);
-        // }
         response => {
             if (response.ok) {
                 response.json().then(responseBody => {
                     playerTokensByClientId[clientId] = responseBody.refreshedToken;
                     onSuccess();
+                });
+            }
+            else {
+                logMessage('error', 'Error authenticating user. status: ' + response.status);
+                onError('error authenticating user');
+            }
+        }
+    )
+}
+var isAuthorizedToStartGame = function(token, gameId, onSuccess, onError) {
+    fetch(API_BASE_URL + `player/start-game/${gameId}/is-authorized`, {
+        method: 'post',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ token })
+    })
+    .then(
+        response => {
+            if (response.ok) {
+                response.json().then(responseBody => {
+                    onSuccess(responseBody.isAuthorized);
                 });
             }
             else {
