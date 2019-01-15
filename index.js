@@ -1538,29 +1538,32 @@ var joinGame = function(messageData, connection) {
 }
 
 var startGame = function(messageData, connection) {
-    isAuthorizedToStartGame(messageData.token, messageData.gameId,
-        isAuthorized => {
-            if (isAuthorized) {
-                getGameById(messageData.gameId, function(game) {
-                    if (game) {
-                        if (!game.isStarted) {
-                            game.isStarted = true;
-                            beginGame(game);
-                        }
+    getGameById(messageData.gameId, function(game) {
+        if (game) {
+            if (!game.isStarted) {
+                fetch(API_BASE_URL + 'game/' + game.id + '/start', {
+                    method: 'put',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ token: messageData.token })
+                })
+                .then(response => {
+                    if (response.ok) {
+                        game.isStarted = true;
+                        beginGame(game);
                     }
                     else {
-                        connection.send(JSON.stringify({ errorMessage: 'Error starting game.' }));
+                        //todo: better error-handling
+                        logMessage('error', 'Error starting game with ID ' + game.id);
                     }
                 });
             }
-            else {
-                connection.send(JSON.stringify({ errorMessage: 'Error starting game: not allowed.' }));
-            }
-        },
-        () => {
-            connection.send(JSON.stringify({ errorMessage: 'Error starting game: not allowed.' }));
         }
-    );
+        else {
+            connection.send(JSON.stringify({ errorMessage: 'Error starting game.' }));
+        }
+    });
 }
 
 var addChips = function(messageData) {
