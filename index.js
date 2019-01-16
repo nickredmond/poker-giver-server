@@ -734,6 +734,7 @@ var onNextUserAction = function(game, actionType, actionValue) {
                 else {
                     activePlayer.numberOfChips -= amountToCall;
                 }
+                actionDisplayAmount = Math.abs(actionDisplayAmount); // todo: is this for sure an AI issue?
                 game.currentPotAmount += actionDisplayAmount;
                 activePlayer.currentBet = game.currentBet;
                 break;
@@ -749,6 +750,7 @@ var onNextUserAction = function(game, actionType, actionValue) {
                 else {
                     activePlayer.numberOfChips -= actionAmount;
                 }
+                actionDisplayAmount = Math.abs(actionDisplayAmount);
                 game.currentPotAmount += actionDisplayAmount;
                 activePlayer.currentBet = actionDisplayAmount;
                 game.currentBet = actionDisplayAmount;
@@ -766,6 +768,8 @@ var onNextUserAction = function(game, actionType, actionValue) {
                 else {
                     activePlayer.numberOfChips -= totalBet;
                 }
+                actionAmount = Math.abs(actionAmount);
+                totalBet = Math.abs(totalBet);
                 game.currentPotAmount += totalBet;
                 var chipsDifference = activePlayer.numberOfChips - (game.currentBet - activePlayer.currentBet);
                 game.currentBet += isAllIn ? Math.max(0, chipsDifference) : actionAmount;
