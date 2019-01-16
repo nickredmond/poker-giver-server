@@ -1742,7 +1742,9 @@ var addPlayer = function(gameId, onSuccess) {
         body: JSON.stringify({ isUpdate: true })
     })
     .then(() => {
-        onSuccess();
+        if (onSuccess) {
+            onSuccess();
+        }
     });
 }
 var removePlayer = function(gameId, onSuccess) {
