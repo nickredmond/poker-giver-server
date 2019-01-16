@@ -1522,7 +1522,7 @@ var joinGame = function(messageData, connection) {
                         game.isFull = game.players.length >= game.numberOfPlayers;
                         
                         addPlayer(game.id);
-                        
+
                         var joinGamePayload = { 
                             action: 'joinGame', 
                             playerName: messageData.playerName,
@@ -1653,7 +1653,7 @@ wss.on('connection', function(ws) {
                 }
 
                 const humanPlayers = game.players.filter(player => player.isHuman).length;
-                if (numberOfHumanPlayers < 2) {
+                if (humanPlayers.length < 2) {
                     const winningPlayer = humanPlayers.length > 0 ? humanPlayers[0] : [];
                     endGame(game, winningPlayer);
                 }
