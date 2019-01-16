@@ -770,6 +770,7 @@ var onNextUserAction = function(game, actionType, actionValue) {
                 }
                 actionAmount = Math.abs(actionAmount);
                 totalBet = Math.abs(totalBet);
+                actionDisplayAmount = Math.abs(actionDisplayAmount);
                 game.currentPotAmount += totalBet;
                 var chipsDifference = activePlayer.numberOfChips - (game.currentBet - activePlayer.currentBet);
                 game.currentBet += isAllIn ? Math.max(0, chipsDifference) : actionAmount;
