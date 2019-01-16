@@ -1634,6 +1634,7 @@ wss.on('connection', function(ws) {
         console.log((new Date()) + ' Peer disconnected.');
         const gameId = gameIdsByClientId[ws.clientId];
         if (gamesById[gameId]) {
+            game.isFull = game.players.length >= game.numberOfPlayers;
             removePlayer(gameId);
 
             getGameById(gameId, (game) => {
