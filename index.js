@@ -248,11 +248,11 @@ var endGame = function(game, winningPlayer) {
         deleteGame(game.id);
         
         clientConnections.forEach(connection => {
-            var numberOfChipsWon = winningPlayer.numberOfChips;
+            var numberOfChipsWon = winningPlayer ? winningPlayer.numberOfChips : 0;
             var payload = {
                 action: 'gameOver',
                 numberOfChipsWon,
-                winningPlayerName: winningPlayer.name
+                winningPlayerName: winningPlayer ? winningPlayer.name : ''
             };
             connection.send(JSON.stringify(payload));
         });
@@ -1655,7 +1655,7 @@ wss.on('connection', function(ws) {
 
                 const humanPlayers = game.players.filter(player => player.isHuman).length;
                 if (humanPlayers.length < 2) {
-                    const winningPlayer = humanPlayers.length > 0 ? humanPlayers[0] : [];
+                    const winningPlayer = humanPlayers.length > 0 ? humanPlayers[0] : null;
                     endGame(game, winningPlayer);
                 }
 
