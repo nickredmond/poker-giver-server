@@ -90,7 +90,7 @@ var beginAiTurn = function(game) {
             var player = game.players[game.currentTurnIndex];
             var cards = game.cardsOnTable.concat([player.card1, player.card2]);
 
-            var maxBetAmount = 1000;
+            var maxBetRatio = 1;
             var oddsOfBetting = 1;
             var oddsOfFolding = 0;
             var isHandFound = false;
@@ -107,22 +107,22 @@ var beginAiTurn = function(game) {
                     isHandFound = handChecks[j](cards) !== null;
 
                     if (!isHandFound) {
-                        maxBetAmount -= 55;
+                        maxBetRatio -= 0.1;
                         oddsOfBetting -= 0.01;
                         oddsOfFolding += 0.01;
                     }
                 }
                 if (!isHandFound) {
-                    maxBetAmount -= 105;
+                    maxBetRatio -= 0.15;
                     oddsOfBetting -= 0.22;
                     oddsOfFolding += 0.08;
                 }
             }
 
             if (cardsOnTable.length > 3) {
-                maxBetAmount -= 75 * (cardsOnTable - 3);
+                maxBetRatio -= 75 * (cardsOnTable - 3);
                 oddsOfBetting -= 0.08 * (cardsOnTable - 3);
-                oddsOfFolding += (maxBetAmount > 500) ? 0 : 0.05;
+                oddsOfFolding += (maxBetRatio > 0.4) ? 0 : 0.05;
             }
 
             var isFold = false;
@@ -134,6 +134,16 @@ var beginAiTurn = function(game) {
                 onNextUserAction(game, 'fold');
             }
             else {
+                var maxBetAmount = 0;
+                if (isHandFound) {
+                    oddsOfBetting -= maxBetRatio > 0.4 ? 0 : 0.1;
+                    maxBetAmount = plaeyr.numberOfChips * maxBetRatio;
+                }
+                else {
+                    maxBetAmount = Math.min(25, Math.random() * 0.1 * player.numberOfChips);
+                    cards.sort(generateCardSortingFunction(true));
+                    oddsOfBetting = getCardScore(cards[0].rank) > 10 ? 0.1 : 0.02;
+                }
                 var isAggressive = oddsOfBetting > Math.random();
                 if (isAggressive) {
                     var betAmount = Math.random() * maxBetAmount;
@@ -235,6 +245,9 @@ var beginDeal = function(game, onDealComplete) {
 }
 
 var endGame = function(game, winningPlayer) {
+    // todo: send endgame request to API to remove this from listing (only retain games w/
+    //      humans in them)
+
     var clientConnections = connectionsByGameId[game.id];
     if (clientConnections) {
         game.players.forEach(player => {
