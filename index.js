@@ -137,7 +137,7 @@ var beginAiTurn = function(game) {
                 var maxBetAmount = 0;
                 if (isHandFound) {
                     oddsOfBetting -= maxBetRatio > 0.4 ? 0 : 0.1;
-                    maxBetAmount = plaeyr.numberOfChips * maxBetRatio;
+                    maxBetAmount = player.numberOfChips * maxBetRatio;
                 }
                 else {
                     maxBetAmount = Math.min(25, Math.random() * 0.1 * player.numberOfChips);
