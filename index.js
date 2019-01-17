@@ -1605,15 +1605,11 @@ var handleUserAction = function(messageData) {
             // }
             logMessage('trace', 'action received from user ' + game.players[game.currentTurnIndex].name)
             if (messageData.playerName === game.players[game.currentTurnIndex].name) {
-                if (messageData.actionType === 'showCards') {
-                    if (messageData.handId === game.handId) {
-                        game.players[game.currentTurnIndex].isShowingHand = true;
-                        sendMessageToClients(game.id, { game });
-                    }
-                }
-                else {
-                    onNextUserAction(game, messageData.actionType, messageData.actionAmount);
-                }
+                onNextUserAction(game, messageData.actionType, messageData.actionAmount);
+            }
+            else if (messageData.actionType === 'showCards' && messageData.handId === game.handId) {
+                game.players[game.currentTurnIndex].isShowingHand = true;
+                sendMessageToClients(game.id, { game });
             }
         } catch (error) {
             // todo: better error-handling
