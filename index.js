@@ -1441,13 +1441,18 @@ var getNofaKindWinners = function(players, n) {
             }
         }
 
-        var cardScore = getCardScore(nOfakindCard.rank, true);
-        if (cardScore > highestNScore) {
-            highestNScore = cardScore;
-            highestNWinners = [winner];
+        if (nOfakindCard) {
+            var cardScore = getCardScore(nOfakindCard.rank, true);
+            if (cardScore > highestNScore) {
+                highestNScore = cardScore;
+                highestNWinners = [winner];
+            }
+            else if (cardScore === highestNScore) {
+                highestNWinners.push(winner);
+            }
         }
-        else if (cardScore === highestNScore) {
-            highestNWinners.push(winner);
+        else {
+            logMessage('warn', 'Did not find ' + n + ' of a kind winner for hand ' + JSON.stringify(hand) + ', player ' + player ? player.name : '[none]')
         }
     });
     
