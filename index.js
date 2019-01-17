@@ -773,7 +773,7 @@ var onNextUserAction = function(game, actionType, actionValue) {
                 totalBet = Math.abs(totalBet);
                 actionDisplayAmount = Math.abs(actionDisplayAmount);
                 game.currentPotAmount += totalBet;
-                var chipsDifference = activePlayer.numberOfChips - (game.currentBet - activePlayer.currentBet);
+                var chipsDifference = actionDisplayAmount - (game.currentBet - activePlayer.currentBet);
                 game.currentBet += isAllIn ? Math.max(0, chipsDifference) : actionAmount;
                 activePlayer.currentBet = game.currentBet;
                 break;
@@ -1600,7 +1600,7 @@ var handleUserAction = function(messageData, clientId) {
     getGameById(messageData.gameId, function(game) {
         try {
             logMessage('trace', 'action received from user ' + game.players[game.currentTurnIndex].name)
-            console.log('epicness ' + game.handId + ', ' + messageData.handId)
+
             if (messageData.playerName === game.players[game.currentTurnIndex].name) {
                 onNextUserAction(game, messageData.actionType, messageData.actionAmount);
             }
@@ -1613,7 +1613,7 @@ var handleUserAction = function(messageData, clientId) {
                         isFound = true;
                     }
                 }
-                
+
                 sendMessageToClients(game.id, { game });
             }
         } catch (error) {
