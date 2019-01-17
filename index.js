@@ -222,6 +222,7 @@ var drawCardFromDeck = function(game) {
 
 var beginDeal = function(game, onDealComplete) {
     try {
+        game.handId = game.handId ? game.handId + 1 : 1;
         game.players.forEach(player => {
             player.isShowingHand = false;
             player.currentBet = 0;
@@ -1604,10 +1605,11 @@ var handleUserAction = function(messageData) {
             // }
             logMessage('trace', 'action received from user ' + game.players[game.currentTurnIndex].name)
             if (messageData.playerName === game.players[game.currentTurnIndex].name) {
-                logMessage('trace', 'indigenous')
                 if (messageData.actionType === 'showCards') {
-                    game.players[game.currentTurnIndex].isShowingHand = true;
-                    sendMessageToClients(game.id, { game });
+                    if (messageData.handId === game.handId) {
+                        game.players[game.currentTurnIndex].isShowingHand = true;
+                        sendMessageToClients(game.id, { game });
+                    }
                 }
                 else {
                     onNextUserAction(game, messageData.actionType, messageData.actionAmount);
