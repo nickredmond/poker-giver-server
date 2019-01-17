@@ -1604,6 +1604,7 @@ var handleUserAction = function(messageData) {
             //     decrementTurnIndex(game);
             // }
             logMessage('trace', 'action received from user ' + game.players[game.currentTurnIndex].name)
+            console.log('epicness ' + game.handId + ', ' + messageData.handId)
             if (messageData.playerName === game.players[game.currentTurnIndex].name) {
                 onNextUserAction(game, messageData.actionType, messageData.actionAmount);
             }
