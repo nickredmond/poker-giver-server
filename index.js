@@ -818,7 +818,7 @@ var incrementTurnIndex = function(game, isBeforeDeal = false) {
     logMessage('trace', 'incrementing turn index');
     do {
         game.currentTurnIndex = (game.currentTurnIndex + 1) % game.players.length;
-        if (currentTurnIndex === 0) {
+        if (game.currentTurnIndex === 0) {
             numberOfRoundsMade++;
         }
     } while (
