@@ -1596,20 +1596,24 @@ var addChips = function(messageData) {
     addChipsRequestsByPlayerName[messageData.playerName] = messageData.numberOfChips;
 }
 
-var handleUserAction = function(messageData) {
+var handleUserAction = function(messageData, clientId) {
     getGameById(messageData.gameId, function(game) {
         try {
-            // if (game.lastTurnIndex !== game.currentTurnIndex) {
-            //     logMessage('warn', 'turn index was incremented as if by dark magic, so it\'s being decremented now');
-            //     decrementTurnIndex(game);
-            // }
             logMessage('trace', 'action received from user ' + game.players[game.currentTurnIndex].name)
             console.log('epicness ' + game.handId + ', ' + messageData.handId)
             if (messageData.playerName === game.players[game.currentTurnIndex].name) {
                 onNextUserAction(game, messageData.actionType, messageData.actionAmount);
             }
             else if (messageData.actionType === 'showCards' && messageData.handId === game.handId) {
-                game.players[game.currentTurnIndex].isShowingHand = true;
+                var playerName = playerNamesByClientId[clientId];
+                var isFound = false;
+                for (var i = 0; i < game.players.length && !isFound; i++) {
+                    if (playerName === game.players[i].name) {
+                        game.players[i].isShowingHand = true;
+                        isFound = true;
+                    }
+                }
+                
                 sendMessageToClients(game.id, { game });
             }
         } catch (error) {
@@ -1635,7 +1639,7 @@ wss.on('connection', function(ws) {
             case 'addChips': 
                 addChips(messageData);
             case 'userAction':
-                handleUserAction(messageData);
+                handleUserAction(messageData, ws.clientId);
                 break;
             case 'startGame':
                 startGame(messageData, ws);
