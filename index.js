@@ -245,6 +245,14 @@ var beginDeal = function(game, onDealComplete) {
     }
 }
 
+var isChipsReturnedByClientId = {};
+var setChipsReturned = function(clientId) {
+    isChipsReturnedByClientId[clientId] = true;
+}
+var isChipsReturned = function(clientId) {
+    return isChipsReturnedByClientId[clientId] || false;
+}
+
 var endGame = function(game, winningPlayer) {
     // todo: send endgame request to API to remove this from listing (only retain games w/
     //      humans in them)
@@ -254,6 +262,8 @@ var endGame = function(game, winningPlayer) {
         game.players.forEach(player => {
             if (player.isHuman && player.numberOfChips > 0) {
                 var token = getPlayerTokenByPlayerName(player.name);
+                var clientId = clientIdsByPlayerName[player.name];
+                setChipsReturned(clientId);
                 addTotalPlayerChips(player, token);
                 delete clientIdsByPlayerName[player.name];
             }
@@ -1682,9 +1692,10 @@ wss.on('connection', function(ws) {
                         deletionIndex = i;
                     }
                 }
-                if (deletionIndex >= 0) {
+                if (deletionIndex >= 0 && !isChipsReturned(ws.clientId)) {
                     const player = game.players[deletionIndex];
                     const token = getPlayerTokenByPlayerName(player.name);
+                    setChipsReturned(ws.clientId);
                     addTotalPlayerChips(player, token);
 
                     game.players = game.players.splice(deletionIndex, 1);
