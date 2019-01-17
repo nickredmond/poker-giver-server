@@ -987,6 +987,8 @@ var endTurn = function(game, actionMessage, isRoundEndHacked) {
             if (isRoundComplete) {
                 if (onlyPlayerIn || game.cardsOnTable.length === 5) {
                     if (onlyPlayerIn) {
+                        logMessage('trace', 'only player won ' + game.currentPotAmount)
+
                         onlyPlayerIn.numberOfChips += game.currentPotAmount;
                         message = onlyPlayerIn.name + ' wins. All other players folded.';
                     }
@@ -1820,6 +1822,8 @@ var deleteGame = function(gameId, onSuccess) {
 }
 
 var addTotalPlayerChips = function(player, token) {
+    logMessage('addTotalPlayerChips ' + player.name + ', ' + player.numberOfChips)
+
     fetch(API_BASE_URL + 'player/addChips', {
         method: 'put',
         headers: {
