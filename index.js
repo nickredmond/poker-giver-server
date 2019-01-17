@@ -1822,7 +1822,7 @@ var deleteGame = function(gameId, onSuccess) {
 }
 
 var addTotalPlayerChips = function(player, token) {
-    logMessage('addTotalPlayerChips ' + player.name + ', ' + player.numberOfChips)
+    logMessage('trace', 'addTotalPlayerChips ' + player.name + ', ' + player.numberOfChips)
 
     fetch(API_BASE_URL + 'player/addChips', {
         method: 'put',
