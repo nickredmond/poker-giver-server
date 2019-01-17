@@ -712,6 +712,7 @@ var setIsPlayedFalseExceptCurrentPlayer = function(game) {
  /** actionType: 'check', 'call', 'bet', 'raise', 'fold'
 /* actionValue (any): bet/raise (number)
 */
+var numberOfBogusCalls = 0;
 var onNextUserAction = function(game, actionType, actionValue) {
     try {
         var activePlayer = game.players[game.currentTurnIndex]; 
@@ -795,17 +796,31 @@ var onNextUserAction = function(game, actionType, actionValue) {
             actionText += actionType + 's';
         }
         
-        endTurn(game, actionText);
+        if (actionText.includes('calls 0')) {
+            numberOfBogusCalls++;
+        }
+        var isRoundEndHacked = false;
+        if (numberOfBogusCalls > 1 && numberOfRoundsMade > 1) {
+            numberOfBogusCalls = 0;
+            numberOfRoundsMade = 0;
+            isRoundEndHacked = true;
+        }
+        
+        endTurn(game, actionText, isRoundEndHacked);
     } catch (error) {
         // todo: better error-handling
         console.log("error handling next user action. " + error.name + ": " + error.message + ", " + error.stack);
     }
 }
 
+var numberOfRoundsMade = 0;
 var incrementTurnIndex = function(game, isBeforeDeal = false) {
     logMessage('trace', 'incrementing turn index');
     do {
         game.currentTurnIndex = (game.currentTurnIndex + 1) % game.players.length;
+        if (currentTurnIndex === 0) {
+            numberOfRoundsMade++;
+        }
     } while (
         game.players[game.currentTurnIndex].numberOfChips <= 0 || !(isBeforeDeal || game.players[game.currentTurnIndex].card1)
     );
@@ -956,7 +971,7 @@ var endHand = function(game, message) {
 }
 
 var NUMBER_OF_ROUNDS = 4; // pre-flop, flop, turn, river
-var endTurn = function(game, actionMessage) {
+var endTurn = function(game, actionMessage, isRoundEndHacked) {
     try {
         if (justDealSomeCardsAndEndTheGameBecauseEverybodyElseFoldedOrWentAllIn(game)) {
             logMessage('trace', 'all players but one have folded or gone all-in')
@@ -966,7 +981,7 @@ var endTurn = function(game, actionMessage) {
             var message = actionMessage;
 
             var onlyPlayerIn = getOnlyPlayerIn(game.players);
-            var isRoundComplete = onlyPlayerIn || isAllPlayersPlayed(game.players); 
+            var isRoundComplete = isRoundEndHacked || onlyPlayerIn || isAllPlayersPlayed(game.players); 
             logMessage('trace', 'is round complete: ' + isRoundComplete);
 
             if (isRoundComplete) {
