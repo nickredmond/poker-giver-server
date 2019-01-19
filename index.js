@@ -1582,6 +1582,7 @@ var joinGame = function(messageData, connection) {
                         game.isFull = game.players.length >= game.numberOfPlayers;
                         
                         addPlayer(game.id);
+                        addPlayerBuyIn(connection.clientId, messageData.buyInAmount);
 
                         var joinGamePayload = { 
                             action: 'joinGame', 
@@ -1633,8 +1634,9 @@ var startGame = function(messageData, connection) {
     });
 }
 
-var addChips = function(messageData) {
+var addChips = function(clientId, messageData) {
     addChipsRequestsByPlayerName[messageData.playerName] = messageData.numberOfChips;
+    addPlayerBuyIn(clientId, messageData.numberOfChips);
 }
 
 var handleUserAction = function(messageData, clientId) {
@@ -1678,7 +1680,7 @@ wss.on('connection', function(ws) {
                 joinGame(messageData, ws);
                 break;
             case 'addChips': 
-                addChips(messageData);
+                addChips(ws.clientId, messageData);
             case 'userAction':
                 handleUserAction(messageData, ws.clientId);
                 break;
@@ -1865,6 +1867,8 @@ var addTotalPlayerChips = function(player, token, clientId) {
 
     var buyInAmount = playerBuyinAmountsByClientId[clientId] || 0;
     var netChipsChange = player.numberOfChips - buyInAmount;
+    logMessage('info', 'Player ' + player.name + ' won ' + netChipsChange + ' chips during gameplay.');
+
     fetch(API_BASE_URL + 'player/net-chips-change', {
         method: 'put',
         headers: {
