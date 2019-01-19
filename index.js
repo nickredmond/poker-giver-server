@@ -264,8 +264,7 @@ var isChipsReturned = function(clientId) {
 }
 
 var endGame = function(game, winningPlayer) {
-    // todo: send endgame request to API to remove this from listing (only retain games w/
-    //      humans in them)
+    deleteGame(game.id);
 
     var clientConnections = connectionsByGameId[game.id];
     if (clientConnections) {
@@ -278,8 +277,6 @@ var endGame = function(game, winningPlayer) {
                 delete clientIdsByPlayerName[player.name];
             }
         });
-
-        deleteGame(game.id);
         
         clientConnections.forEach(connection => {
             var numberOfChipsWon = winningPlayer ? winningPlayer.numberOfChips : 0;
@@ -291,9 +288,6 @@ var endGame = function(game, winningPlayer) {
             connection.send(JSON.stringify(payload));
         });
 
-        delete gamesById[game.id];
-        delete connectionsByGameId[game.id];
-
         setTimeout((connections) => {
             connections.forEach(connection => {
                 delete playerTokensByClientId[connection.clientId];
@@ -301,6 +295,9 @@ var endGame = function(game, winningPlayer) {
             })
         }, 5000, clientConnections);
     }
+
+    delete gamesById[game.id];
+    delete connectionsByGameId[game.id];
 }
 
 var dealCards = function(game, activePlayersCount, onDealComplete) {
@@ -1717,6 +1714,17 @@ wss.on('connection', function(ws) {
 
                     game.players = game.players.splice(deletionIndex, 1);
                     game.isFull = game.players.length >= game.numberOfPlayers;
+
+                    if (game.currentTurnIndex === deletionIndex) {
+                        if (game.currentTurnIndex === game.players.length) {
+                            game.currentTurnIndex--;
+                        }
+                        sendMessageToClients(game.id, { action: 'playerLeft', playerName });
+                        endTurn(game, null);
+                    }
+                    else if (game.currentTurnIndex === game.players.length) {
+                        game.currentTurnIndex--;
+                    }
                 }
 
                 const humanPlayers = game.players.filter(player => player.isHuman).length;
@@ -1868,7 +1876,6 @@ var addTotalPlayerChips = function(player, token, clientId) {
 
     var buyInAmount = playerBuyinAmountsByClientId[clientId] || 0;
     var netChipsChange = player.numberOfChips - buyInAmount;
-    logMessage('trace', 'hm ' + buyInAmount + ' ' + player.numberOfChips + ' ' + clientId + ' ' + playerBuyinAmountsByClientId[clientId])
     logMessage('info', 'Player ' + player.name + ' won ' + netChipsChange + ' chips during gameplay.');
 
     fetch(API_BASE_URL + 'player/net-chips-change', {
