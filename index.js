@@ -1720,7 +1720,11 @@ wss.on('connection', function(ws) {
                             game.currentTurnIndex--;
                         }
                         sendMessageToClients(game.id, { action: 'playerLeft', playerName });
-                        endTurn(game, null);
+
+                        const humanPlayers = game.players.filter(player => player.isHuman).length;
+                        if (humanPlayers.length >= 2) {
+                            endTurn(game, null);
+                        }
                     }
                     else if (game.currentTurnIndex === game.players.length) {
                         game.currentTurnIndex--;
@@ -1732,8 +1736,6 @@ wss.on('connection', function(ws) {
                     const winningPlayer = humanPlayers.length > 0 ? humanPlayers[0] : null;
                     endGame(game, winningPlayer);
                 }
-
-                // todo: send disconnect message w/ playername, and display that in clients
             });
         }
     });
