@@ -1834,7 +1834,7 @@ var connectionClosed = function(ws, onDone) {
             }
             console.log("s2")
             if (deletionIndex >= 0 && !isChipsReturned(ws.clientId)) {
-                console.log("a0")
+                console.log("a0 " + game.players.length)
                 const player = game.players[deletionIndex];
                 const token = getPlayerTokenByPlayerName(player.name);
                 setChipsReturned(ws.clientId);
@@ -1842,7 +1842,7 @@ var connectionClosed = function(ws, onDone) {
 
                 game.players = game.players.splice(deletionIndex, 1);
                 game.isFull = game.players.length >= game.numberOfPlayers;
-                console.log("a1")
+                console.log("a1 " + game.players.length)
                 if (game.currentTurnIndex === deletionIndex) {
                     if (game.currentTurnIndex === game.players.length) {
                         game.currentTurnIndex--;
@@ -1861,9 +1861,10 @@ var connectionClosed = function(ws, onDone) {
                 }
                 console.log("a4")
             }
-            console.log("s3")
+            console.log("s3??? ", game.players)
 
             const humanPlayers = game.players.filter(player => player.isHuman).length;
+            console.log("humans ", humanPlayers)
             if (humanPlayers.length < 2) {
                 logMessage('trace', 'ending game after player left')
                 const winningPlayer = humanPlayers.length > 0 ? humanPlayers[0] : null;
