@@ -75,11 +75,12 @@ var logMessage =  function(logLevel, message) {
     }
 }
 
+var OPEN_STATE = 1;
 var sendMessageToClients = function(gameId, payload) {
     var clientConnections = connectionsByGameId[gameId];
     if (clientConnections) {
         clientConnections.forEach(connection => {
-            if (connection.readyState === 1) { // ReadyState.OPEN
+            if (connection.readyState === OPEN_STATE) {
                 connection.send(JSON.stringify(payload));
             }
         });
@@ -310,13 +311,15 @@ var endGame = function(game, winningPlayer) {
         });
         
         clientConnections.forEach(connection => {
-            var numberOfChipsWon = winningPlayer ? winningPlayer.numberOfChips : 0;
-            var payload = {
-                action: 'gameOver',
-                numberOfChipsWon,
-                winningPlayerName: winningPlayer ? winningPlayer.name : ''
-            };
-            connection.send(JSON.stringify(payload));
+            if (connection.readyState === OPEN_STATE) {
+                var numberOfChipsWon = winningPlayer ? winningPlayer.numberOfChips : 0;
+                var payload = {
+                    action: 'gameOver',
+                    numberOfChipsWon,
+                    winningPlayerName: winningPlayer ? winningPlayer.name : ''
+                };
+                connection.send(JSON.stringify(payload));
+            }
         });
 
         setTimeout((connections) => {
