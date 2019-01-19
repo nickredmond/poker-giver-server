@@ -97,77 +97,72 @@ var beginAiTurn = function(game) {
     setTimeout(() => {
         try {
             var player = game.players[game.currentTurnIndex];
-            if (player) {
-                var cards = game.cardsOnTable.concat([player.card1, player.card2]);
+            var cards = game.cardsOnTable.concat([player.card1, player.card2]);
 
-                var maxBetRatio = 1;
-                var oddsOfBetting = 1;
-                var oddsOfFolding = 0;
-                var isHandFound = false;
+            var maxBetRatio = 1;
+            var oddsOfBetting = 1;
+            var oddsOfFolding = 0;
+            var isHandFound = false;
 
-                var handTiers = [
-                    [getRoyalFlush, getStraightFlush, getFourofaKind],
-                    [getFullHouse, getFlush, getStraight],
-                    [getThreeofaKind, getTwoPair, getPair],
-                ];
+            var handTiers = [
+                [getRoyalFlush, getStraightFlush, getFourofaKind],
+                [getFullHouse, getFlush, getStraight],
+                [getThreeofaKind, getTwoPair, getPair],
+            ];
 
-                for (var i = 0; i < handTiers.length && !isHandFound; i++) {
-                    var handChecks = handTiers[i];
-                    for (var j = 0; j < handTiers[i].length && !isHandFound; j++) {
-                        isHandFound = handChecks[j](cards) !== null;
+            for (var i = 0; i < handTiers.length && !isHandFound; i++) {
+                var handChecks = handTiers[i];
+                for (var j = 0; j < handTiers[i].length && !isHandFound; j++) {
+                    isHandFound = handChecks[j](cards) !== null;
 
-                        if (!isHandFound) {
-                            maxBetRatio -= 0.1;
-                            oddsOfBetting -= 0.01;
-                            oddsOfFolding += 0.01;
-                        }
-                    }
                     if (!isHandFound) {
-                        maxBetRatio -= 0.15;
-                        oddsOfBetting -= 0.22;
-                        oddsOfFolding += 0.08;
+                        maxBetRatio -= 0.1;
+                        oddsOfBetting -= 0.01;
+                        oddsOfFolding += 0.01;
                     }
                 }
-
-                if (cardsOnTable.length > 3) {
-                    maxBetRatio -= 75 * (cardsOnTable - 3);
-                    oddsOfBetting -= 0.08 * (cardsOnTable - 3);
-                    oddsOfFolding += (maxBetRatio > 0.4) ? 0 : 0.05;
-                }
-
-                var isFold = false;
-                if (player.currentBet < game.currentBet) {
-                    isFold = oddsOfFolding > Math.random();
-                }
-
-                if (isFold) {
-                    onNextUserAction(game, 'fold');
-                }
-                else {
-                    var maxBetAmount = 0;
-                    if (isHandFound) {
-                        oddsOfBetting -= maxBetRatio > 0.4 ? 0 : 0.1;
-                        maxBetAmount = player.numberOfChips * maxBetRatio;
-                    }
-                    else {
-                        maxBetAmount = Math.min(25, Math.random() * 0.1 * player.numberOfChips);
-                        cards.sort(generateCardSortingFunction(true));
-                        oddsOfBetting = getCardScore(cards[0].rank) > 10 ? 0.1 : 0.02;
-                    }
-                    var isAggressive = oddsOfBetting > Math.random();
-                    if (isAggressive) {
-                        var betAmount = Math.random() * maxBetAmount;
-                        var action = (game.currentBet === 0) ? 'bet' : 'raise';
-                        onNextUserAction(game, action, betAmount);
-                    }
-                    else {
-                        var action = (game.currentBet === 0) ? 'check' : 'call';
-                        onNextUserAction(game, action);
-                    }
+                if (!isHandFound) {
+                    maxBetRatio -= 0.15;
+                    oddsOfBetting -= 0.22;
+                    oddsOfFolding += 0.08;
                 }
             }
+
+            if (cardsOnTable.length > 3) {
+                maxBetRatio -= 75 * (cardsOnTable - 3);
+                oddsOfBetting -= 0.08 * (cardsOnTable - 3);
+                oddsOfFolding += (maxBetRatio > 0.4) ? 0 : 0.05;
+            }
+
+            var isFold = false;
+            if (player.currentBet < game.currentBet) {
+                isFold = oddsOfFolding > Math.random();
+            }
+
+            if (isFold) {
+                onNextUserAction(game, 'fold');
+            }
             else {
-                logMessage('warn', 'No player was found for AI at turn index ' + game.currentTurnIndex + ', possibly related to inexplicable player disconnect?')
+                var maxBetAmount = 0;
+                if (isHandFound) {
+                    oddsOfBetting -= maxBetRatio > 0.4 ? 0 : 0.1;
+                    maxBetAmount = player.numberOfChips * maxBetRatio;
+                }
+                else {
+                    maxBetAmount = Math.min(25, Math.random() * 0.1 * player.numberOfChips);
+                    cards.sort(generateCardSortingFunction(true));
+                    oddsOfBetting = getCardScore(cards[0].rank) > 10 ? 0.1 : 0.02;
+                }
+                var isAggressive = oddsOfBetting > Math.random();
+                if (isAggressive) {
+                    var betAmount = Math.random() * maxBetAmount;
+                    var action = (game.currentBet === 0) ? 'bet' : 'raise';
+                    onNextUserAction(game, action, betAmount);
+                }
+                else {
+                    var action = (game.currentBet === 0) ? 'check' : 'call';
+                    onNextUserAction(game, action);
+                }
             }
         } catch (error) {
             // todo: handle this more gracefully... or just remove w/ removal of AI?
