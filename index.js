@@ -1824,6 +1824,7 @@ var connectionClosed = function(ws, onDone) {
         removePlayer(gameId);
 
         getGameById(gameId, (game) => {
+            console.log("s1")
             const playerName = playerNamesByClientId[ws.clientId];
             let deletionIndex = -1;
             for (var i = 0; i < game.players.length && deletionIndex < 0; i++) {
@@ -1831,7 +1832,9 @@ var connectionClosed = function(ws, onDone) {
                     deletionIndex = i;
                 }
             }
+            console.log("s2")
             if (deletionIndex >= 0 && !isChipsReturned(ws.clientId)) {
+                console.log("a0")
                 const player = game.players[deletionIndex];
                 const token = getPlayerTokenByPlayerName(player.name);
                 setChipsReturned(ws.clientId);
@@ -1839,23 +1842,26 @@ var connectionClosed = function(ws, onDone) {
 
                 game.players = game.players.splice(deletionIndex, 1);
                 game.isFull = game.players.length >= game.numberOfPlayers;
-
+                console.log("a1")
                 if (game.currentTurnIndex === deletionIndex) {
                     if (game.currentTurnIndex === game.players.length) {
                         game.currentTurnIndex--;
                     }
                     sendMessageToClients(game.id, { action: 'playerLeft', playerName });
-
+                    console.log("a2")
                     const humanPlayers = game.players.filter(player => player.isHuman).length;
                     if (humanPlayers.length >= 2) {
                         logMessage('trace', 'ending turn after player left')
                         endTurn(game, null);
                     }
+                    console.log("a3")
                 }
                 else if (game.currentTurnIndex === game.players.length) {
                     game.currentTurnIndex--;
                 }
+                console.log("a4")
             }
+            console.log("s3")
 
             const humanPlayers = game.players.filter(player => player.isHuman).length;
             if (humanPlayers.length < 2) {
@@ -1863,6 +1869,7 @@ var connectionClosed = function(ws, onDone) {
                 const winningPlayer = humanPlayers.length > 0 ? humanPlayers[0] : null;
                 endGame(game, winningPlayer);
             }
+            console.log("s4")
 
             onDone();
         });
