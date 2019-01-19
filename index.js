@@ -764,7 +764,7 @@ var onNextUserAction = function(game, actionType, actionValue) {
         var actionInterval = setInterval((g, at, av) => {
             if (!isGameBlocked) {
                 clearInterval(actionInterval);
-                handleUserAction(g, at, av);
+                handleGameAction(g, at, av);
             }
         }, 200, game, actionType, actionValue);
     }
@@ -773,15 +773,15 @@ var onNextUserAction = function(game, actionType, actionValue) {
         var actionInterval = setInterval((g, at, av) => {
             if (!isGameBlocked) {
                 clearInterval(actionInterval);
-                handleUserAction(g, at, av);
+                handleGameAction(g, at, av);
             }
         }, 200, game, actionType, actionValue);
     }
     else {
-        handleUserAction(game, actionType, actionValue);
+        handleGameAction(game, actionType, actionValue);
     }
 }
-var handleUserAction = function(game, actionType, actionValue) {
+var handleGameAction = function(game, actionType, actionValue) {
     try {
         var activePlayer = game.players[game.currentTurnIndex]; 
         var actionAmount = parseInt(actionValue) || 0;
