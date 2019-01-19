@@ -1752,16 +1752,45 @@ wss.on('connection', function(ws) {
             removePlayer(gameId);
 
             getGameById(gameId, (game) => {
-                if (game.isPaused) {
-                    var closedInterval = setInterval(() => {
-                        if (!game.isPaused) {
-                            clearInterval(closedInterval);
-                            connectionClosed(ws, game);
-                        }
-                    }, 200);
+                const playerName = playerNamesByClientId[ws.clientId];
+                let deletionIndex = -1;
+                for (var i = 0; i < game.players.length && deletionIndex < 0; i++) {
+                    if (playerName === game.players[i].name) {
+                        deletionIndex = i;
+                    }
                 }
-                else {
-                    connectionClosed(ws, game);
+                if (deletionIndex >= 0 && !isChipsReturned(ws.clientId)) {
+                    const player = game.players[deletionIndex];
+                    const token = getPlayerTokenByPlayerName(player.name);
+                    setChipsReturned(ws.clientId);
+                    addTotalPlayerChips(player, token, ws.clientId);
+
+                    game.players = game.players.splice(deletionIndex, 1);
+                    game.isFull = game.players.length >= game.numberOfPlayers;
+
+                    if (game.currentTurnIndex === deletionIndex) {
+                        if (game.currentTurnIndex === game.players.length) {
+                            game.currentTurnIndex--;
+                        }
+                        sendMessageToClients(game.id, { action: 'playerLeft', playerName });
+
+                        const humanPlayers = game.players.filter(player => player.isHuman).length;
+                        if (humanPlayers.length >= 2) {
+                            logMessage('trace', 'ending turn after player left')
+                            endTurn(game, null);
+                        }
+                    }
+                    else if (game.currentTurnIndex === game.players.length) {
+                        game.currentTurnIndex--;
+                    }
+                }
+
+                const humanPlayers = game.players.filter(player => player.isHuman).length;
+                if (humanPlayers.length < 2) {
+                    logMessage('trace', 'ending game after player left')
+                    const winningPlayer = humanPlayers.length > 0 ? humanPlayers[0] : null;
+                    endGame(game, winningPlayer);
+>>>>>>> parent of 0eadeb6... defcon 5
                 }
             });
         }
