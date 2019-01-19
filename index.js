@@ -18,7 +18,7 @@ var removeConnection = function(connection) {
         }
     }
     if (deletionIndex >= 0) {
-        connections = connections.splice(deletionIndex, 1);
+        connections.splice(deletionIndex, 1);
     }
 }
 
@@ -1840,7 +1840,7 @@ var connectionClosed = function(ws, onDone) {
                 setChipsReturned(ws.clientId);
                 addTotalPlayerChips(player, token, ws.clientId);
 
-                game.players = game.players.splice(deletionIndex, 1);
+                game.players.splice(deletionIndex, 1);
                 game.isFull = game.players.length >= game.numberOfPlayers;
                 console.log("a1 " + game.players.length)
                 if (game.currentTurnIndex === deletionIndex) {
