@@ -107,6 +107,19 @@ var DECK_OF_CARDS = [
 // AI logic functions -->
 
 var beginAiTurn = function(game) {
+    if (game.isPaused) {
+        var aiInterval = setInterval(() => {
+            if (!game.isPaused) {
+                clearInterval(aiInterval);
+                doAi(game);
+            }
+        }, 200);
+    }
+    else {
+        doAi(game);
+    }
+}
+var doAi = function(game) {
     var turnLengthMillis = (Math.random() * 2500) + 300;
     setTimeout(() => {
         try {
@@ -744,6 +757,19 @@ var setIsPlayedFalseExceptCurrentPlayer = function(game) {
 */
 var numberOfBogusCalls = 0;
 var onNextUserAction = function(game, actionType, actionValue) {
+    if (game.isPaused) {
+        var actionInterval = setInterval(() => {
+            if (!game.isPaused) {
+                clearInterval(actionInterval);
+                handleUserAction(game, actionType, actionValue);
+            }
+        }, 200);
+    }
+    else {
+        handleUserAction(game, actionType, actionValue);
+    }
+}
+var handleUserAction = function(game, actionType, actionValue) {
     try {
         var activePlayer = game.players[game.currentTurnIndex]; 
         var actionAmount = parseInt(actionValue) || 0;
@@ -1002,6 +1028,19 @@ var endHand = function(game, message) {
 
 var NUMBER_OF_ROUNDS = 4; // pre-flop, flop, turn, river
 var endTurn = function(game, actionMessage, isRoundEndHacked) {
+    if (game.isPaused) {
+        var endTurnInterval = setInterval(() => {
+            if (!game.isPaused) {
+                clearInterval(endTurnInterval);
+                doEndTurn(game, actionMessage, isRoundEndHacked);
+            }
+        }, 200);
+    }
+    else {
+        doEndTurn(game, actionMessage, isRoundEndHacked);
+    }
+}
+var doEndTurn = function(game, actionMessage, isRoundEndHacked) {
     try {
         if (justDealSomeCardsAndEndTheGameBecauseEverybodyElseFoldedOrWentAllIn(game)) {
             logMessage('trace', 'all players but one have folded or gone all-in')
@@ -1713,55 +1752,73 @@ wss.on('connection', function(ws) {
             removePlayer(gameId);
 
             getGameById(gameId, (game) => {
-                const playerName = playerNamesByClientId[ws.clientId];
-                let deletionIndex = -1;
-                for (var i = 0; i < game.players.length && deletionIndex < 0; i++) {
-                    if (playerName === game.players[i].name) {
-                        deletionIndex = i;
-                    }
-                }
-                if (deletionIndex >= 0 && !isChipsReturned(ws.clientId)) {
-                    const player = game.players[deletionIndex];
-                    const token = getPlayerTokenByPlayerName(player.name);
-                    setChipsReturned(ws.clientId);
-                    console.log("s-1")
-                    addTotalPlayerChips(player, token, ws.clientId);
-                    console.log("s0")
-                    game.players = game.players.splice(deletionIndex, 1);
-                    game.isFull = game.players.length >= game.numberOfPlayers;
-
-                    if (game.currentTurnIndex === deletionIndex) {
-                        console.log("s1")
-                        if (game.currentTurnIndex === game.players.length) {
-                            game.currentTurnIndex--;
+                if (game.isPaused) {
+                    var closedInterval = setInterval(() => {
+                        if (!game.isPaused) {
+                            clearInterval(closedInterval);
+                            connectionClosed(ws, game);
                         }
-                        console.log("s2")
-                        sendMessageToClients(game.id, { action: 'playerLeft', playerName });
-
-                        const humanPlayers = game.players.filter(player => player.isHuman).length;
-                        if (humanPlayers.length >= 2) {
-                            logMessage('trace', 'ending turn after player left')
-                            endTurn(game, null);
-                        }
-                        console.log("s3")
-                    }
-                    else if (game.currentTurnIndex === game.players.length) {
-                        console.log("s4")
-                        game.currentTurnIndex--;
-                    }
+                    }, 200);
                 }
-
-                console.log("s5")
-                const humanPlayers = game.players.filter(player => player.isHuman).length;
-                if (humanPlayers.length < 2) {
-                    logMessage('trace', 'ending game after player left')
-                    const winningPlayer = humanPlayers.length > 0 ? humanPlayers[0] : null;
-                    endGame(game, winningPlayer);
+                else {
+                    connectionClosed(ws, game);
                 }
             });
         }
     });
 });
+
+var connectionClosed = function(ws, game) {
+    game.isPaused = true;
+    
+    const playerName = playerNamesByClientId[ws.clientId];
+    let deletionIndex = -1;
+    for (var i = 0; i < game.players.length && deletionIndex < 0; i++) {
+        if (playerName === game.players[i].name) {
+            deletionIndex = i;
+        }
+    }
+    if (deletionIndex >= 0 && !isChipsReturned(ws.clientId)) {
+        const player = game.players[deletionIndex];
+        const token = getPlayerTokenByPlayerName(player.name);
+        setChipsReturned(ws.clientId);
+        console.log("s-1")
+        addTotalPlayerChips(player, token, ws.clientId);
+        console.log("s0")
+        game.players = game.players.splice(deletionIndex, 1);
+        game.isFull = game.players.length >= game.numberOfPlayers;
+
+        if (game.currentTurnIndex === deletionIndex) {
+            console.log("s1")
+            if (game.currentTurnIndex === game.players.length) {
+                game.currentTurnIndex--;
+            }
+            console.log("s2")
+            sendMessageToClients(game.id, { action: 'playerLeft', playerName });
+
+            const humanPlayers = game.players.filter(player => player.isHuman).length;
+            if (humanPlayers.length >= 2) {
+                logMessage('trace', 'ending turn after player left')
+                endTurn(game, null);
+            }
+            console.log("s3")
+        }
+        else if (game.currentTurnIndex === game.players.length) {
+            console.log("s4")
+            game.currentTurnIndex--;
+        }
+    }
+
+    console.log("s5")
+    const humanPlayers = game.players.filter(player => player.isHuman).length;
+    if (humanPlayers.length < 2) {
+        logMessage('trace', 'ending game after player left')
+        const winningPlayer = humanPlayers.length > 0 ? humanPlayers[0] : null;
+        endGame(game, winningPlayer);
+    }
+
+    game.isPaused = false;
+}
 
 // todo: lock down all actions; authenticate before switch on action type
 // also, maybe store validTokens list in memory so only need to POST /authenticate once?
