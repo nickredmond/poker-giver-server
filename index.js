@@ -1724,15 +1724,18 @@ wss.on('connection', function(ws) {
                     const player = game.players[deletionIndex];
                     const token = getPlayerTokenByPlayerName(player.name);
                     setChipsReturned(ws.clientId);
+                    console.log("s-1")
                     addTotalPlayerChips(player, token, ws.clientId);
-
+                    console.log("s0")
                     game.players = game.players.splice(deletionIndex, 1);
                     game.isFull = game.players.length >= game.numberOfPlayers;
 
                     if (game.currentTurnIndex === deletionIndex) {
+                        console.log("s1")
                         if (game.currentTurnIndex === game.players.length) {
                             game.currentTurnIndex--;
                         }
+                        console.log("s2")
                         sendMessageToClients(game.id, { action: 'playerLeft', playerName });
 
                         const humanPlayers = game.players.filter(player => player.isHuman).length;
@@ -1740,12 +1743,15 @@ wss.on('connection', function(ws) {
                             logMessage('trace', 'ending turn after player left')
                             endTurn(game, null);
                         }
+                        console.log("s3")
                     }
                     else if (game.currentTurnIndex === game.players.length) {
+                        console.log("s4")
                         game.currentTurnIndex--;
                     }
                 }
 
+                console.log("s5")
                 const humanPlayers = game.players.filter(player => player.isHuman).length;
                 if (humanPlayers.length < 2) {
                     logMessage('trace', 'ending game after player left')
