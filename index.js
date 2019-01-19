@@ -1713,7 +1713,7 @@ wss.on('connection', function(ws) {
                     const player = game.players[deletionIndex];
                     const token = getPlayerTokenByPlayerName(player.name);
                     setChipsReturned(ws.clientId);
-                    addTotalPlayerChips(player, token);
+                    addTotalPlayerChips(player, token, ws.clientId);
 
                     game.players = game.players.splice(deletionIndex, 1);
                     game.isFull = game.players.length >= game.numberOfPlayers;
