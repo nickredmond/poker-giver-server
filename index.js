@@ -7,6 +7,17 @@ var connections = [];
 var addConnection = function(connection) {
     connections.push(connection);
 }
+var removeConnection = function(connection) {
+    var deletionIndex = -1;
+    for (var i = 0; i < connections.length && deletionIndex < 0; i++) {
+        if (connection.clientId === connections[i].clientId) {
+            deletionIndex = i;
+        }
+    }
+    if (deletionIndex >= 0) {
+        connections = connections.splice(deletionIndex, 1);
+    }
+}
 
 var playerTokensByClientId = {};
 var playerBuyinAmountsByClientId = {};
@@ -63,7 +74,9 @@ var sendMessageToClients = function(gameId, payload) {
     var clientConnections = connectionsByGameId[gameId];
     if (clientConnections) {
         clientConnections.forEach(connection => {
-            connection.send(JSON.stringify(payload));
+            if (connection.readyState === 1) { // ReadyState.OPEN
+                connection.send(JSON.stringify(payload));
+            }
         });
     }
 }
@@ -1695,6 +1708,7 @@ wss.on('connection', function(ws) {
     ws.on('close', function() {  
         console.log((new Date()) + ' Peer disconnected. client Id ' + ws.clientId);
         const gameId = gameIdsByClientId[ws.clientId];
+        removeConnection(ws);
         if (gamesById[gameId]) {
             removePlayer(gameId);
 
