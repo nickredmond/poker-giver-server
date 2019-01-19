@@ -1737,6 +1737,7 @@ wss.on('connection', function(ws) {
 
                         const humanPlayers = game.players.filter(player => player.isHuman).length;
                         if (humanPlayers.length >= 2) {
+                            logMessage('trace', 'ending turn after player left')
                             endTurn(game, null);
                         }
                     }
@@ -1747,6 +1748,7 @@ wss.on('connection', function(ws) {
 
                 const humanPlayers = game.players.filter(player => player.isHuman).length;
                 if (humanPlayers.length < 2) {
+                    logMessage('trace', 'ending game after player left')
                     const winningPlayer = humanPlayers.length > 0 ? humanPlayers[0] : null;
                     endGame(game, winningPlayer);
                 }
