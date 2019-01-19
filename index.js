@@ -1,8 +1,10 @@
 var API_BASE_URL = 'https://poker-giver-api.herokuapp.com/';
 const fetch = require('node-fetch');
 
-var isGameBlocked = false;
-var isWaitingForBlockedGame = false;
+/** Flags to prevent currently running game from encountering error when user leaves game. */
+var isGameBlocked = {}; // by gameId
+var isWaitingForBlockedGame = {}; // by gameId
+var isGameOver = {}; // by gameId
 
 // todo: do I want to store these, or is in-memory fine?
 var connectionsByGameId = {};
@@ -760,24 +762,24 @@ var setIsPlayedFalseExceptCurrentPlayer = function(game) {
 */
 var numberOfBogusCalls = 0;
 var onNextUserAction = function(game, actionType, actionValue) {
-    if (isGameBlocked) {
+    if (isGameBlocked[game.id]) {
         var actionInterval = setInterval((g, at, av) => {
-            if (!isGameBlocked) {
+            if (!isGameBlocked[game.id]) {
                 clearInterval(actionInterval);
                 handleGameAction(g, at, av);
             }
         }, 200, game, actionType, actionValue);
     }
-    if (isWaitingForBlockedGame) {
-        isGameBlocked = true;
+    if (isWaitingForBlockedGame[game.id]) {
+        isGameBlocked[game.id] = true;
         var actionInterval = setInterval((g, at, av) => {
-            if (!isGameBlocked) {
+            if (!isGameBlocked[game.id]) {
                 clearInterval(actionInterval);
                 handleGameAction(g, at, av);
             }
         }, 200, game, actionType, actionValue);
     }
-    else {
+    else if (!isGameOver[game.id]) {
         handleGameAction(game, actionType, actionValue);
     }
 }
@@ -913,24 +915,24 @@ var getOnlyPlayerIn = function(players) {
 }
 
 var startNextTurn = function(game) {
-    if (isGameBlocked) {
+    if (isGameBlocked[game.id]) {
         var interval = setInterval(g => {
-            if (!isGameBlocked) {
+            if (!isGameBlocked[game.id]) {
                 clearInterval(interval);
-                deletionIndex(g);
+                doNextTurn(g);
             }
         }, 200, game);
     }
-    else if (isWaitingForBlockedGame) {
-        isGameBlocked = true;
+    else if (isWaitingForBlockedGame[game.id]) {
+        isGameBlocked[game.id] = true;
         var interval = setInterval(g => {
-            if (!isGameBlocked) {
+            if (!isGameBlocked[game.id]) {
                 clearInterval(interval);
-                deletionIndex(g);
+                doNextTurn(g);
             }
         }, 200, game);
     }
-    else {
+    else if (!isGameOver[game.id]) {
         doNextTurn(game);
     }
 }
@@ -1062,24 +1064,24 @@ var endHand = function(game, message) {
 
 var NUMBER_OF_ROUNDS = 4; // pre-flop, flop, turn, river
 var endTurn = function(game, actionMessage, isRoundEndHacked) {
-    if (isGameBlocked) {
+    if (isGameBlocked[game.id]) {
         var endTurnInterval = setInterval((g, am, isHacks) => {
-            if (!isGameBlocked) {
+            if (!isGameBlocked[game.id]) {
                 clearInterval(endTurnInterval);
                 doEndTurn(g, am, isHacks);
             }
         }, 200, game, actionMessage, isRoundEndHacked);
     }
-    else if (isWaitingForBlockedGame) {
-        isGameBlocked = true;
+    else if (isWaitingForBlockedGame[game.id]) {
+        isGameBlocked[game.id] = true;
         var endTurnInterval = setInterval((g, am, isHacks) => {
-            if (!isGameBlocked) {
+            if (!isGameBlocked[game.id]) {
                 clearInterval(endTurnInterval);
                 doEndTurn(g, am, isHacks);
             }
         }, 200, game, actionMessage, isRoundEndHacked);
     }
-    else {
+    else if (!isGameOver[game.id]) {
         doEndTurn(game, actionMessage, isRoundEndHacked);
     }
 }
@@ -1789,29 +1791,30 @@ wss.on('connection', function(ws) {
     });
     ws.on('close', function() {  
         console.log((new Date()) + ' Peer disconnected. client Id ' + ws.clientId);
-        
-        if (isGameBlocked) {
+        const gameId = gameIdsByClientId[ws.clientId];
+
+        if (isGameBlocked[gameId]) {
             const interval = setInterval(socket => {
-                if (!isGameBlocked) {
+                if (!isGameBlocked[gameId]) {
                     clearInterval(interval);
-                    waitForBlockedGame(socket);
+                    waitForBlockedGame(socket, gameId);
                 }
             }, 200, ws);
         }
         else {
-            waitForBlockedGame(ws);
+            waitForBlockedGame(ws, gameId);
         }
     });
 });
 
-var waitForBlockedGame = function(ws) {
-    isWaitingForBlockedGame = true;
+var waitForBlockedGame = function(ws, gameId) {
+    isWaitingForBlockedGame[gameId] = true;
     const interval = setInterval(socket => {
         if (isGameBlocked) {
-            isWaitingForBlockedGame = false;
+            isWaitingForBlockedGame[gameId] = false;
             clearInterval(interval);
             connectionClosed(socket, () => {
-                isGameBlocked = false;
+                isGameBlocked[gameId] = false;
             });
         }
     }, 200, ws);
@@ -1868,6 +1871,7 @@ var connectionClosed = function(ws, onDone) {
             if (humanPlayers.length < 2) {
                 logMessage('trace', 'ending game after player left')
                 const winningPlayer = humanPlayers.length > 0 ? humanPlayers[0] : null;
+                isGameOver[gameId] = true;
                 endGame(game, winningPlayer);
             }
             console.log("s4")
