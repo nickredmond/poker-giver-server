@@ -33,6 +33,7 @@ var addPlayerBuyIn = function(clientId, buyInAmount) {
     else {
         playerBuyinAmountsByClientId[clientId] = buyInAmount;
     }
+    logMessage('trace', 'yikes ' + playerBuyinAmountsByClientId[clientId])
 }
 var getClientId = function(playerName) {
     return clientIdsByPlayerName[playerName];
@@ -1867,6 +1868,7 @@ var addTotalPlayerChips = function(player, token, clientId) {
 
     var buyInAmount = playerBuyinAmountsByClientId[clientId] || 0;
     var netChipsChange = player.numberOfChips - buyInAmount;
+    logMessage('trace', 'hm ' + buyInAmount + ' ' + player.numberOfChips + ' ' + clientId + ' ' + playerBuyinAmountsByClientId[clientId])
     logMessage('info', 'Player ' + player.name + ' won ' + netChipsChange + ' chips during gameplay.');
 
     fetch(API_BASE_URL + 'player/net-chips-change', {
