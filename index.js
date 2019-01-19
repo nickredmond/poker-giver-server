@@ -1861,8 +1861,8 @@ var connectionClosed = function(ws, onDone) {
                 }
             }
 
-            const humanPlayersLength = game.players.filter(player => player.isHuman).length;
-            if (humanPlayersLength < 2) {
+            const humanPlayers = game.players.filter(player => player.isHuman);
+            if (humanPlayers.length < 2) {
                 logMessage('trace', 'ending game after player left')
                 const winningPlayer = humanPlayers.length > 0 ? humanPlayers[0] : null;
                 isGameOver[gameId] = true;
