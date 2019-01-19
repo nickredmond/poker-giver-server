@@ -1842,6 +1842,7 @@ var removePlayer = function(gameId, onSuccess) {
     });
 }
 var deleteGame = function(gameId, onSuccess) {
+    logMessage('trace', 'Deleting game with ID ' + gameId);
     fetch(API_BASE_URL + 'game/' + gameId, {
         method: 'delete'
     })
