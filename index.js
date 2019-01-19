@@ -9,6 +9,7 @@ var addConnection = function(connection) {
 }
 
 var playerTokensByClientId = {};
+var playerBuyinAmountsByClientId = {};
 var clientIdsByPlayerName = {};
 var gameIdsByClientId = {};
 var playerNamesByClientId = {};
@@ -23,6 +24,14 @@ var addClientToGame = function(messageData, clientConnection) {
     }
     else {
         connectionsByGameId[messageData.gameId] = [clientConnection];
+    }
+}
+var addPlayerBuyIn = function(clientId, buyInAmount) {
+    if (playerBuyinAmountsByClientId[clientId]) {
+        playerBuyinAmountsByClientId[clientId] += buyInAmount;
+    }
+    else {
+        playerBuyinAmountsByClientId[clientId] = buyInAmount;
     }
 }
 var getClientId = function(playerName) {
@@ -260,11 +269,11 @@ var endGame = function(game, winningPlayer) {
     var clientConnections = connectionsByGameId[game.id];
     if (clientConnections) {
         game.players.forEach(player => {
-            if (player.isHuman && player.numberOfChips > 0) {
+            var clientId = clientIdsByPlayerName[player.name];
+            if (player.isHuman && player.numberOfChips > 0 && !isChipsReturned(clientId)) {
                 var token = getPlayerTokenByPlayerName(player.name);
-                var clientId = clientIdsByPlayerName[player.name];
                 setChipsReturned(clientId);
-                addTotalPlayerChips(player, token);
+                addTotalPlayerChips(player, token, clientId);
                 delete clientIdsByPlayerName[player.name];
             }
         });
@@ -1684,7 +1693,7 @@ wss.on('connection', function(ws) {
         }
     });
     ws.on('close', function() {  
-        console.log((new Date()) + ' Peer disconnected.');
+        console.log((new Date()) + ' Peer disconnected. client Id ' + ws.clientId);
         const gameId = gameIdsByClientId[ws.clientId];
         if (gamesById[gameId]) {
             removePlayer(gameId);
@@ -1837,7 +1846,7 @@ var deleteGame = function(gameId, onSuccess) {
     });
 }
 
-var addTotalPlayerChips = function(player, token) {
+var addTotalPlayerChips = function(player, token, clientId) {
     logMessage('trace', 'addTotalPlayerChips ' + player.name + ', ' + player.numberOfChips)
 
     fetch(API_BASE_URL + 'player/addChips', {
@@ -1853,6 +1862,22 @@ var addTotalPlayerChips = function(player, token) {
             logMessage('error', 'Error saving chips for player ' + player.name + ', status: ' + response.status);
         }
     });
+
+    var buyInAmount = playerBuyinAmountsByClientId[clientId] || 0;
+    var netChipsChange = player.numberOfChips - buyInAmount;
+    fetch(API_BASE_URL + 'player/net-chips-change', {
+        method: 'put',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ token, netChipsChange })
+    })
+    .then(response => {
+        if (!response.ok) {
+            logMessage('error', 'Error calling net-chips-change for player ' + player.name + ', status: ' + response.status);
+        }
+    });
+    delete playerBuyinAmountsByClientId[clientId];
 }
 
 // SECTION:: server logic
