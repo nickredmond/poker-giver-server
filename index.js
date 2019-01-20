@@ -1808,6 +1808,29 @@ wss.on('connection', function(ws) {
             waitForBlockedGame(ws, gameId);
         }
     });
+
+    const fortyFiveMinutes = 45 * 60 * 1000;
+    setInterval(() => {
+        try {
+            logMessage('info', 'refreshing user keys...')
+            Object.keys(clientIdsByPlayerName).forEach(playerName => {
+                const clientId = clientIdsByPlayerName[playerName];
+                const token = playerTokensByClientId[clientId];
+                if (token && clientId) {
+                    authenticate(token, clientId,
+                        () => {},
+                        () => {
+                            logMessage('error', 'Error refreshing user token for player ' + playerName);
+                        }
+                    );
+                }
+            })
+            logMessage('info', 'user keys attempted to refresh.')
+        }
+        catch (err) {
+            logMessage('error', 'Error refreshing client tokens: ' + err.name + '- ' + err.message + ', stack --- ' + err.stack);
+        }
+    }, fortyFiveMinutes);
 });
 
 var waitForBlockedGame = function(ws, gameId) {
