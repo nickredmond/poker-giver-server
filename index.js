@@ -1809,7 +1809,7 @@ wss.on('connection', function(ws) {
         }
     });
 
-    const fortyFiveMinutes = 1 * 60 * 1000;
+    const fortyFiveMinutes = 45 * 60 * 1000;
     setInterval(() => {
         try {
             logMessage('info', 'refreshing user keys...')
