@@ -62,7 +62,7 @@ var getPlayerTokenByPlayerName = function(playerName) {
     return playerTokensByClientId[clientId];
 }
 
-var minLogLevel = 'trace';
+var minLogLevel = process.env.MIN_LOG_LEVEL || 'trace';
 var logLevels = {
     'trace': 1,
     'info': 2,
@@ -72,6 +72,9 @@ var logLevels = {
 var logMessage =  function(logLevel, message) {
     if (logLevels[logLevel] >= logLevels[minLogLevel]) {
         console.log(logLevel.toUpperCase() + ': ' + message);
+    }
+    if (!logLevels[logLevel]) {
+        console.log('Unknown log level "' + logLevel + '" used for message "' + message + '"')
     }
 }
 
@@ -300,12 +303,13 @@ var endGame = function(game, winningPlayer) {
 
     var clientConnections = connectionsByGameId[game.id];
     if (clientConnections) {
+        var isAiGame = hasAiPlayers(game);
         game.players.forEach(player => {
             var clientId = clientIdsByPlayerName[player.name];
             if (player.isHuman && player.numberOfChips > 0 && !isChipsReturned(clientId)) {
                 var token = getPlayerTokenByPlayerName(player.name);
                 setChipsReturned(clientId);
-                addTotalPlayerChips(player, token, clientId);
+                addTotalPlayerChips(player, token, clientId, isAiGame);
                 delete clientIdsByPlayerName[player.name];
             }
         });
@@ -1648,6 +1652,8 @@ var uuid = require('uuid/v1');
 var app = express()
 var port = process.env.PORT || 5000
 
+var aiChipsFactor = process.env.AI_CHIPS_FACTOR || 0.25;
+
 app.use(express.static(__dirname + "/"))
 
 var server = http.createServer(app)
@@ -1865,7 +1871,8 @@ var connectionClosed = function(ws, onDone) {
                 const player = game.players[deletionIndex];
                 const token = getPlayerTokenByPlayerName(player.name);
                 setChipsReturned(ws.clientId);
-                addTotalPlayerChips(player, token, ws.clientId);
+                const isAiGame = hasAiPlayers(game);
+                addTotalPlayerChips(player, token, ws.clientId, isAiGame);
 
                 game.players.splice(deletionIndex, 1);
                 game.isFull = game.players.length >= game.numberOfPlayers;
@@ -2019,7 +2026,10 @@ var deleteGame = function(gameId, onSuccess) {
     });
 }
 
-var addTotalPlayerChips = function(player, token, clientId) {
+var hasAiPlayers = function(game) {
+    return game.players.filter(player => !player.isHuman).length > 0;
+}
+var addTotalPlayerChips = function(player, token, clientId, isAiGame) {
     logMessage('trace', 'addTotalPlayerChips ' + player.name + ', ' + player.numberOfChips)
 
     fetch(API_BASE_URL + 'player/addChips', {
@@ -2038,6 +2048,12 @@ var addTotalPlayerChips = function(player, token, clientId) {
 
     var buyInAmount = playerBuyinAmountsByClientId[clientId] || 0;
     var netChipsChange = player.numberOfChips - buyInAmount;
+    if (isAiGame) {
+        logMessage('trace', 'Player "' + player.name + '" chips won/lost are multiplied by ' +
+            AI_CHIPS_FACTOR + ' because one or more AI players were present.');
+        netChipsChange *= AI_CHIPS_FACTOR;
+    }
+
     logMessage('info', 'Player ' + player.name + ' won ' + netChipsChange + ' chips during gameplay.');
 
     fetch(API_BASE_URL + 'player/net-chips-change', {
