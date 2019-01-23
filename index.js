@@ -2053,6 +2053,7 @@ var addTotalPlayerChips = function(player, token, clientId, isAiGame) {
             AI_CHIPS_FACTOR + ' because one or more AI players were present.');
         netChipsChange *= AI_CHIPS_FACTOR;
     }
+    netChipsChange = Math.ceil(netChipsChange);
 
     logMessage('info', 'Player ' + player.name + ' won ' + netChipsChange + ' chips during gameplay.');
 
