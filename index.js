@@ -2050,8 +2050,8 @@ var addTotalPlayerChips = function(player, token, clientId, isAiGame) {
     var netChipsChange = player.numberOfChips - buyInAmount;
     if (isAiGame) {
         logMessage('trace', 'Player "' + player.name + '" chips won/lost are multiplied by ' +
-            AI_CHIPS_FACTOR + ' because one or more AI players were present.');
-        netChipsChange *= AI_CHIPS_FACTOR;
+            aiChipsFactor + ' because one or more AI players were present.');
+        netChipsChange *= aiChipsFactor;
     }
     netChipsChange = Math.ceil(netChipsChange);
 
