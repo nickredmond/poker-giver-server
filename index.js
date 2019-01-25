@@ -1882,7 +1882,7 @@ var connectionClosed = function(ws, onDone) {
                     if (game.currentTurnIndex === game.players.length) {
                         game.currentTurnIndex--;
                     }
-                    sendMessageToClients(game.id, { action: 'playerLeft', playerName });
+                    sendMessageToClients(game.id, { action: 'playerLeft', playerName, game });
 
                     const humanPlayersLength = game.players.filter(player => player.isHuman).length;
                     if (humanPlayersLength >= 2) {
