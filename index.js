@@ -1688,11 +1688,12 @@ var joinGame = function(messageData, connection) {
                         addPlayer(game.id);
                         addPlayerBuyIn(connection.clientId, messageData.buyInAmount);
 
-                        var joinGamePayload = { 
-                            action: 'joinGame', 
+                        var playerAddedPayload = { 
+                            action: 'playerAdded', 
                             playerName: messageData.playerName,
                             game
                         };
+                        sendMessageToClients(game.id, playerAddedPayload)
                         connection.send(JSON.stringify(joinGamePayload));
                     }
                     else {
