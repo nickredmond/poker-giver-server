@@ -1645,13 +1645,13 @@ var groupBy = function(items, propertyName) {
     return groups;
 }
 
-var fs = require('fs');
-var privateKey = fs.readFileSync('key.pem', 'utf8');
-var certificate = fs.readFileSync('cert.pem', 'utf8');
-var credentials = {key: privateKey, cert: certificate};
+// var fs = require('fs');
+// var privateKey = fs.readFileSync('key.pem', 'utf8');
+// var certificate = fs.readFileSync('cert.pem', 'utf8');
+// var credentials = {key: privateKey, cert: certificate};
 
 var WebSocketServer = require("ws").Server
-var https = require("https")
+var http = require("http")
 var express = require("express")
 var uuid = require('uuid/v1');
 var app = express()
@@ -1661,7 +1661,7 @@ var aiChipsFactor = process.env.AI_CHIPS_FACTOR || 0.25;
 
 app.use(express.static(__dirname + "/"))
 
-var server = https.createServer(credentials, app);
+var server = http.createServer(app)
 server.listen(port)
 
 console.log("http server listening on %d", port)
