@@ -1699,7 +1699,6 @@ var joinGame = function(messageData, connection) {
                             game
                         };
                         sendMessageToClients(game.id, playerAddedPayload)
-                        connection.send(JSON.stringify(joinGamePayload));
                     }
                     else {
                         connection.send(JSON.stringify({ isTableFull: true, errorMessage: 'Table is full!' }));
